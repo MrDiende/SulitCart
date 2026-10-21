@@ -1,0 +1,27 @@
+.sale-details__metadata { display: grid; gap: 16px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--color-line); }
+.sale-details__metadata dt { font-size: 12px; color: var(--color-muted); }
+.sale-details__metadata dd { margin-top: 4px; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.sale-details__heading { margin-bottom: 12px; font-size: 14px; font-weight: 600; }
+.sale-details__item { display: flex; align-items: center; gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--color-line); }
+.sale-details__item:first-child { padding-top: 0; }
+.sale-details__item:last-child { border-bottom: 0; }
+.sale-details__item img { height: 44px; width: 44px; flex-shrink: 0; border-radius: 8px; object-fit: cover; }
+.sale-details__item-info { min-width: 0; flex: 1; }
+.sale-details__item-info p:first-child { font-size: 14px; font-weight: 500; }
+.sale-details__item-info p:last-child { margin-top: 2px; font-size: 12px; color: var(--color-muted); }
+.sale-details__item > span { flex-shrink: 0; font-size: 14px; font-weight: 600; }
+.sale-details__total { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--color-line); font-weight: 600; }
+.sale-records { min-width: 0; overflow: hidden; }
+.sale-records__toolbar { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-bottom: 1px solid var(--color-line); }
+.sale-records__toolbar > p { font-size: 12px; color: var(--color-muted); }
+.sale-records__search { position: relative; display: block; width: 100%; }
+.sale-records__search-label { position: absolute; height: 1px; width: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.sale-records__search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-muted); pointer-events: none; }
+.sale-records__search input { height: 40px; width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--color-line); border-radius: 12px; background: #fff; font-size: 14px; outline: none; }
+.sale-records__search input:focus { border-color: var(--color-primary); }
+
+@media (min-width: 640px) {
+  .sale-details__metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sale-records__toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
+  .sale-records__search { width: 320px; }
+}

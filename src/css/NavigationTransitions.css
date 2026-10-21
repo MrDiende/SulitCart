@@ -1,0 +1,61 @@
+.page-transition { min-width: 0; }
+.page-transition--enter { animation: navigation-page-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.store-nav__link, .store-drawer__link, .store-drawer__account,
+.portal-sidebar__link, .portal-sidebar__store, .portal-header__store,
+.admin-order-tabs__link {
+  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.store-drawer-overlay__backdrop, .portal-drawer-overlay__backdrop {
+  animation: navigation-backdrop-in 200ms ease both;
+}
+.store-drawer { animation: navigation-drawer-right-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.portal-drawer { animation: navigation-drawer-left-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.store-drawer-overlay--closing, .portal-drawer-overlay--closing { pointer-events: none; }
+.store-drawer-overlay--closing .store-drawer-overlay__backdrop,
+.portal-drawer-overlay--closing .portal-drawer-overlay__backdrop {
+  animation: navigation-backdrop-out 220ms ease both;
+}
+.store-drawer-overlay--closing .store-drawer { animation: navigation-drawer-right-out 220ms ease both; }
+.portal-drawer-overlay--closing .portal-drawer { animation: navigation-drawer-left-out 220ms ease both; }
+
+@keyframes navigation-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes navigation-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes navigation-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes navigation-drawer-right-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes navigation-drawer-right-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+@keyframes navigation-drawer-left-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes navigation-drawer-left-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition--enter,
+  .store-drawer, .portal-drawer,
+  .store-drawer-overlay__backdrop, .portal-drawer-overlay__backdrop,
+  .store-drawer-overlay--closing .store-drawer,
+  .portal-drawer-overlay--closing .portal-drawer,
+  .store-drawer-overlay--closing .store-drawer-overlay__backdrop,
+  .portal-drawer-overlay--closing .portal-drawer-overlay__backdrop { animation: none; }
+  .store-drawer-overlay--closing, .portal-drawer-overlay--closing { visibility: hidden; }
+}
