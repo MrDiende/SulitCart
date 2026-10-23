@@ -85,6 +85,7 @@ export function StoreProvider({ children }) {
   const [storageError, setStorageError] = useState("");
   const [auditLogs, setAuditLogs] = useState([]);
   const productsRef = useRef(products);
+  const authRequestRef = useRef(0);
 
   useEffect(() => {
     productsRef.current = products;
@@ -293,11 +294,10 @@ export function StoreProvider({ children }) {
 
   useEffect(() => {
     let mounted = true;
-    let profileRequest = 0;
     const loadProfile = async (session) => {
-      const requestId = ++profileRequest;
+      const requestId = ++authRequestRef.current;
       if (!session?.user) {
-        if (mounted && requestId === profileRequest) {
+        if (mounted && requestId === authRequestRef.current) {
           setUser(null);
           setUsers([]);
           setStaff([]);
@@ -307,7 +307,7 @@ export function StoreProvider({ children }) {
       }
       try {
         const { data, error } = await supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
-        if (!mounted || requestId !== profileRequest) return;
+        if (!mounted || requestId !== authRequestRef.current) return;
         if (error || !data) {
           setStorageError(error
             ? `Could not load your account profile: ${error.message}`
@@ -320,12 +320,13 @@ export function StoreProvider({ children }) {
         setUser(profileUser);
         setUsers((current) => [profileUser, ...current.filter((item) => item.id !== profileUser.id)]);
         setStorageError("");
+        setAuthLoading(false);
         if (data.role === "customer") {
           setCustomers((current) => [{ id: data.id, email: data.email, name: data.full_name, phone: data.phone, address: data.address, active: data.active, joined: data.created_at }, ...current.filter((item) => item.id !== data.id)]);
           setStaff([]);
           const { data: customerOrders, error: customerOrdersError } = await supabase
             .from("orders").select("*").eq("customer_id", data.id).order("created_at", { ascending: false });
-          if (!mounted || requestId !== profileRequest) return;
+          if (!mounted || requestId !== authRequestRef.current) return;
           if (customerOrdersError) {
             setStorageError(`Could not load your orders: ${customerOrdersError.message}`);
           } else {
@@ -333,7 +334,7 @@ export function StoreProvider({ children }) {
             const { data: customerItems, error: customerItemsError } = orderIds.length
               ? await supabase.from("order_items").select("*").in("order_id", orderIds)
               : { data: [], error: null };
-            if (!mounted || requestId !== profileRequest) return;
+            if (!mounted || requestId !== authRequestRef.current) return;
             if (customerItemsError) {
               setStorageError(`Could not load order items: ${customerItemsError.message}`);
             } else {
@@ -347,16 +348,15 @@ export function StoreProvider({ children }) {
           }
         } else if (data.role === "admin") {
           await loadAdminData();
-          if (!mounted || requestId !== profileRequest) return;
+          if (!mounted || requestId !== authRequestRef.current) return;
         } else if (data.role === "staff") {
           await loadStaffOrders();
-          if (!mounted || requestId !== profileRequest) return;
+          if (!mounted || requestId !== authRequestRef.current) return;
         } else {
           setStaff([]);
         }
-        setAuthLoading(false);
       } catch (error) {
-        if (!mounted || requestId !== profileRequest) return;
+        if (!mounted || requestId !== authRequestRef.current) return;
         setStorageError(`Could not load your account profile: ${error.message || "Unexpected error."}`);
         setUser((current) => current?.id === session.user.id ? current : null);
         setAuthLoading(false);
@@ -754,6 +754,7 @@ export function StoreProvider({ children }) {
     const signedIn = { id: profile.id, name: profile.full_name, email: profile.email, phone: profile.phone, address: profile.address, role: profile.role, active: profile.active };
     if (signedIn.active === false) { await supabase.auth.signOut(); return { error: "This account is inactive. Please contact the store team." }; }
     setUser(signedIn);
+    setAuthLoading(false);
     setStorageError("");
     setUsers((current) => [signedIn, ...current.filter((item) => item.id !== signedIn.id)]);
     return { user: signedIn };
@@ -770,6 +771,7 @@ export function StoreProvider({ children }) {
     if (!data.session) return { error: "Account created. Check your email to confirm your address, then sign in." };
     const signedIn = { id: data.user.id, name: name.trim(), email: email.trim(), phone: phone.trim(), role: 'customer', active: true };
     setUser(signedIn);
+    setAuthLoading(false);
     setUsers((current) => [signedIn, ...current.filter((item) => item.id !== signedIn.id)]);
     setCustomers((current) => [{ id: signedIn.id, name: signedIn.name, email: signedIn.email, phone: signedIn.phone, active: true, joined: new Date().toISOString() }, ...current.filter((item) => item.id !== signedIn.id)]);
     return { user: signedIn };
@@ -786,8 +788,21 @@ export function StoreProvider({ children }) {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    authRequestRef.current += 1;
     setUser(null);
+    setCart([]);
+    setOrders([]);
+    setUsers([]);
+    setStaff([]);
+    setCustomers([]);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      const message = `Could not sign out: ${error.message}`;
+      setStorageError(message);
+      return { error: message };
+    }
+    setStorageError("");
+    return true;
   };
 
   const value = {

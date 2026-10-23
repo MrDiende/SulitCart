@@ -45,8 +45,14 @@ export function AdminDashboardPage() {
 const periods = [{ label: "Today", days: 1 }, { label: "7 days", days: 7 }, { label: "30 days", days: 30 }, { label: "3 months", days: 90 }];
 
 function periodOrders(orders, days) {
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-  return orders.filter((order) => new Date(order.date).getTime() >= cutoff && new Date(order.date).getTime() <= Date.now());
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - days + 1);
+  return orders.filter((order) => {
+    const timestamp = new Date(order.date).getTime();
+    return timestamp >= cutoff.getTime() && timestamp <= now.getTime();
+  });
 }
 
 function DateFilter({ period, setPeriod }) {
@@ -57,6 +63,7 @@ export function ReportsPage() {
   const { orders, products, customers } = useStore();
   const [period, setPeriod] = useState(30);
   const filtered = useMemo(() => periodOrders(orders, period), [orders, period]);
+  const periodLabel = periods.find((item) => item.days === period)?.label || `${period} days`;
   const completed = filtered.filter((order) => order.status === "Completed");
   const sales = completed.reduce((sum, order) => sum + order.total, 0);
   const sold = completed.reduce((sum, order) => sum + order.items.reduce((quantity, item) => quantity + item.quantity, 0), 0);
@@ -64,7 +71,7 @@ export function ReportsPage() {
   const summary = [["Total sales", formatPHP(sales)], ["Orders", filtered.length], ["Products sold", sold], ["Inventory items", products.reduce((sum, product) => sum + product.stock, 0)], ["Customers", customers.length]];
   return <>
     <PageTitle eyebrow="Simple store performance" title="Reports" description="A useful snapshot of sales, orders, and inventory." action={<DateFilter period={period} setPeriod={setPeriod} />} />
-    <div className="overview-report-metrics">{summary.map(([label, value], index) => <div className="overview-report-metric" key={label}><p>{label}</p><p>{value}</p><p>{index === 0 || index === 1 || index === 2 ? `Last ${period === 1 ? "day" : `${period} days`}` : "Current snapshot"}</p></div>)}</div>
+    <div className="overview-report-metrics">{summary.map(([label, value], index) => <div className="overview-report-metric" key={label}><p>{label}</p><p>{value}</p><p>{index === 0 || index === 1 || index === 2 ? periodLabel : "Current snapshot"}</p></div>)}</div>
     <div className="overview-report-columns">
       <Surface className="overview-chart-panel"><div className="overview-chart-panel__header"><div><h2>Sales summary</h2><p>Completed orders in the selected period</p></div><BarChart3 size={18} /></div><div className="overview-sales-total"><p>{formatPHP(sales)}</p><span>{completed.length} completed</span></div><SalesChart orders={orders} days={period} /></Surface>
       <Surface className="overview-table"><div className="overview-panel-heading"><h2>Inventory summary</h2><p>Current catalog health</p></div><div className="overview-inventory-summary"><div><span>Total products</span><span>{products.length}</span></div><div><span>Units in stock</span><span>{products.reduce((sum, product) => sum + product.stock, 0)}</span></div><div><span>Low or out of stock</span><span className="overview-inventory-summary__low">{products.filter((product) => product.stock <= product.threshold).length}</span></div><div className="overview-inventory-summary__value"><span>Estimated inventory value</span><span>{formatPHP(inventoryValue)}</span></div></div></Surface>

@@ -1,20 +1,18 @@
 import { useMemo, useState } from "react";
-import { Check, Edit2, Eye, Plus, Search, Tags, Trash2 } from "lucide-react";
+import { Check, Edit2, Eye, Search, Tags, Trash2 } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 import { formatPHP } from "../../utils";
 import Alert from "../../components/Alert";
 import ProductForm from "../../components/ProductForm";
-import StockAdjustmentModal from "../../components/StockAdjustmentModal";
 import { PRODUCT_IMAGE_PLACEHOLDER } from "../../utils/productImage";
 import { Button, EmptyState, Field, Modal, PageTitle, StatusBadge, Surface, TableWrap, TextArea, TextInput, thClass, tdClass } from "../../components/UI";
 import "../../css/CatalogManagementPages.css";
 
 export function AdminProductsPage() {
-  const { products, categories, upsertProduct, deleteProduct, adjustStock } = useStore();
+  const { products, categories, upsertProduct, deleteProduct } = useStore();
   const [query, setQuery] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [stockTarget, setStockTarget] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const filtered = useMemo(() => products.filter((product) => `${product.name} ${product.sku}`.toLowerCase().includes(query.toLowerCase())), [products, query]);
   const edit = (product) => { setSelected({ ...product }); setEditorOpen(true); };
@@ -24,13 +22,6 @@ export function AdminProductsPage() {
     if (result?.error) return result;
     close();
     setFeedback({ text: `${result.name} saved.`, error: false });
-    return result;
-  };
-  const saveStock = async (productId, quantity, note) => {
-    const result = await adjustStock(productId, quantity, note);
-    if (result?.error) return result;
-    const product = products.find((item) => item.id === productId);
-    setFeedback({ text: `${Math.abs(quantity)} ${quantity > 0 ? "added to" : "removed from"} ${product.name}. New stock: ${result.product.stock}.`, error: false });
     return result;
   };
   const toggle = async (product) => {
@@ -51,10 +42,7 @@ export function AdminProductsPage() {
   };
 
   return <>
-    <PageTitle eyebrow="Catalog" title="Products" description={`${products.length} products in your store catalog.`} action={<div className="admin-catalog-actions">
-      <Button variant="secondary" onClick={() => setStockTarget("")} disabled={!products.length}><Plus size={16} />Add stock</Button>
-      <Button onClick={() => { setSelected(null); setEditorOpen(true); }}><Plus size={16} />Add product</Button>
-    </div>} />
+    <PageTitle eyebrow="Catalog" title="Products" description={`${products.length} products in your store catalog.`} action={<Button onClick={() => { setSelected(null); setEditorOpen(true); }}>Add product</Button>} />
     <Alert message={feedback?.text} type={feedback?.error ? "error" : "success"} trigger={feedback} onDismiss={() => setFeedback(null)} />
     <Surface className="admin-catalog-table">
       <div className="admin-catalog-table__toolbar">
@@ -71,7 +59,6 @@ export function AdminProductsPage() {
           <td className={`${tdClass} ui-table-cell--strong`}>{product.stock}</td>
           <td className={tdClass}><StatusBadge status={product.active ? "Active" : "Inactive"} /></td>
           <td className={tdClass}><div className="admin-catalog-row-actions">
-            <Button size="sm" variant="secondary" className="ui-button--nowrap" onClick={() => setStockTarget(product.id)}><Plus size={13} />Add stock</Button>
             <button title="Edit" aria-label={`Edit ${product.name}`} onClick={() => edit(product)} className="admin-catalog-icon-action"><Edit2 size={15} /></button>
             <button title={product.active ? "Deactivate" : "Activate"} aria-label={`${product.active ? "Deactivate" : "Activate"} ${product.name}`} onClick={() => toggle(product)} className="admin-catalog-icon-action">{product.active ? <Eye size={15} /> : <Check size={15} />}</button>
             <button title="Delete" aria-label={`Delete ${product.name}`} onClick={() => window.confirm(`Delete ${product.name}?`) && remove(product)} className="admin-catalog-icon-action admin-catalog-icon-action--danger"><Trash2 size={15} /></button>
@@ -80,7 +67,6 @@ export function AdminProductsPage() {
       </TableWrap>
     </Surface>
     {editorOpen && <ProductForm open onClose={close} initial={selected} onSave={save} categories={categories} products={products} />}
-    {stockTarget !== null && <StockAdjustmentModal open onClose={() => setStockTarget(null)} products={products} categories={categories} onSave={saveStock} defaultProductId={stockTarget} addOnly />}
   </>;
 }
 

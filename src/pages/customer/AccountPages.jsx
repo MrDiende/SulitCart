@@ -91,7 +91,6 @@ export function RegisterPage() {
         <Button type="submit" size="lg" className="ui-button--full">Create account <ArrowRight size={16} /></Button>
       </form>
       <p className="auth-panel__switch">Already have an account? <Link to={returnToCheckout ? checkoutLoginPath : "/login"}>Sign in</Link></p>
-      <p className="auth-panel__prototype">Your account is securely managed by Supabase.</p>
     </div>
   </div>;
 }

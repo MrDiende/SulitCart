@@ -2,8 +2,14 @@ import { formatPHP } from "../utils";
 import "../css/SalesChart.css";
 
 export default function SalesChart({ orders, days = 7, compact = false }) {
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-  const completed = orders.filter((order) => order.status === "Completed" && new Date(order.date).getTime() >= cutoff);
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - days + 1);
+  const completed = orders.filter((order) => {
+    const timestamp = new Date(order.date).getTime();
+    return order.status === "Completed" && timestamp >= cutoff.getTime() && timestamp <= now.getTime();
+  });
   const buckets = Array.from({ length: 7 }, (_, index) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - index));
