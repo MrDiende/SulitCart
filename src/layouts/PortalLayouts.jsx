@@ -24,6 +24,8 @@ const adminLinks = [
 
 const staffLinks = [
   ["Dashboard", "/staff"],
+  ["Products", "/products"],
+  ["Categories", "/categories"],
   ["Online orders", "/staff/orders"],
   ["Walk-in sales", "/staff/walk-in-sales"],
   ["Profile", "/staff/profile"],

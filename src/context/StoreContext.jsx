@@ -214,6 +214,22 @@ export function StoreProvider({ children }) {
     )));
   }, []);
 
+  const loadStaffCatalog = useCallback(async () => {
+    const [categoriesResult, productsResult] = await Promise.all([
+      supabase.from("categories").select("*").eq("active", true).order("name"),
+      supabase.from("products").select("*").eq("active", true).order("created_at", { ascending: false }),
+    ]);
+    const failure = categoriesResult.error || productsResult.error;
+    if (failure) {
+      setStorageError(`Could not load the staff catalog: ${failure.message}`);
+      return;
+    }
+    setCategories((categoriesResult.data || []).map(mapCategory));
+    const loadedProducts = (productsResult.data || []).map(mapProduct);
+    productsRef.current = loadedProducts;
+    setProducts(loadedProducts);
+  }, []);
+
   const refreshInventory = useCallback(async () => {
     const { data, error } = await supabase.from("inventory_transactions").select("*").order("created_at", { ascending: false });
     if (error) {
@@ -350,7 +366,7 @@ export function StoreProvider({ children }) {
           await loadAdminData();
           if (!mounted || requestId !== authRequestRef.current) return;
         } else if (data.role === "staff") {
-          await loadStaffOrders();
+          await Promise.all([loadStaffCatalog(), loadStaffOrders()]);
           if (!mounted || requestId !== authRequestRef.current) return;
         } else {
           setStaff([]);
@@ -367,7 +383,7 @@ export function StoreProvider({ children }) {
       Promise.resolve().then(() => loadProfile(session));
     });
     return () => { mounted = false; listener.subscription.unsubscribe(); };
-  }, [loadAdminData, loadStaffOrders]);
+  }, [loadAdminData, loadStaffCatalog, loadStaffOrders]);
 
   const addAudit = useCallback(async (action, entity, description, actor = user) => {
     if (!actor?.id) return { error: "Sign in before recording an audit event." };
