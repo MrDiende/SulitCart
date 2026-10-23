@@ -157,6 +157,23 @@ drop policy if exists "products_public_read" on public.products;
 create policy "products_public_read" on public.products for select to anon, authenticated using (active = true or public.is_staff_or_admin());
 drop policy if exists "products_staff_manage" on public.products;
 create policy "products_staff_manage" on public.products for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'categories'
+  ) then
+    alter publication supabase_realtime add table public.categories;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'products'
+  ) then
+    alter publication supabase_realtime add table public.products;
+  end if;
+end $$;
+
 drop policy if exists "shipping_public_read" on public.shipping_rates;
 create policy "shipping_public_read" on public.shipping_rates for select to anon, authenticated using (active = true or public.is_staff_or_admin());
 drop policy if exists "shipping_staff_manage" on public.shipping_rates;

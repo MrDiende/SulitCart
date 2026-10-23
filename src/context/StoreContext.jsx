@@ -250,22 +250,45 @@ export function StoreProvider({ children }) {
   // Initial data is loaded from Supabase. No local mock catalog or seeded demo records are used.
   useEffect(() => {
     let mounted = true;
-    const loadPublicData = async () => {
-      const [categoryResult, productResult, shippingResult] = await Promise.all([
+    let catalogRequest = 0;
+    const loadCatalog = async () => {
+      const requestId = ++catalogRequest;
+      const [categoryResult, productResult] = await Promise.all([
         supabase.from("categories").select("*").order("name"),
         supabase.from("products").select("*").order("created_at", { ascending: false }),
-        supabase.from("shipping_rates").select("*").order("municipality"),
       ]);
-      if (!mounted) return;
+      if (!mounted || requestId !== catalogRequest) return;
       if (categoryResult.error) console.error("Supabase categories load failed:", categoryResult.error.message);
+      else setCategories((categoryResult.data || []).map(mapCategory));
       if (productResult.error) console.error("Supabase products load failed:", productResult.error.message);
-      if (shippingResult.error) console.error("Supabase shipping rates load failed:", shippingResult.error.message);
-      if (!categoryResult.error) setCategories((categoryResult.data || []).map(mapCategory));
-      if (!productResult.error) setProducts((productResult.data || []).map(mapProduct));
-      if (!shippingResult.error) setShipping((shippingResult.data || []).map((row) => ({ id: row.id, municipality: row.municipality, barangay: row.barangay, fee: Number(row.fee), active: row.active })));
+      else {
+        const loadedProducts = (productResult.data || []).map(mapProduct);
+        productsRef.current = loadedProducts;
+        setProducts(loadedProducts);
+      }
     };
+    const loadPublicData = async () => {
+      await loadCatalog();
+      const { data: shippingRates, error: shippingError } = await supabase.from("shipping_rates").select("*").order("municipality");
+      if (!mounted) return;
+      if (shippingError) console.error("Supabase shipping rates load failed:", shippingError.message);
+      else setShipping((shippingRates || []).map((row) => ({ id: row.id, municipality: row.municipality, barangay: row.barangay, fee: Number(row.fee), active: row.active })));
+    };
+    const catalogChannel = supabase
+      .channel("store-catalog")
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories" }, () => { void loadCatalog(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => { void loadCatalog(); })
+      .subscribe((status, error) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error("Supabase catalog realtime subscription failed:", error?.message || status);
+        }
+      });
     loadPublicData();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      catalogRequest += 1;
+      void catalogChannel.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
