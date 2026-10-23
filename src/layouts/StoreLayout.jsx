@@ -40,7 +40,6 @@ export default function StoreLayout() {
   if (authLoading) return <div className="portal-loading" role="status" aria-live="polite">
     <span className="portal-loading__spinner" aria-hidden="true" />
     <span className="portal-loading__brand">SulitCart<span>.</span></span>
-    <span className="portal-loading__message">Loading your account...</span>
   </div>;
 
   return <div className="store-layout">

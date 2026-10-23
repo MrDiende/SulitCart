@@ -42,7 +42,6 @@
 .portal-loading__spinner { width: 28px; height: 28px; border: 3px solid #dce5dc; border-top-color: var(--color-primary); border-radius: 50%; animation: app-spin 800ms linear infinite; }
 .portal-loading__brand { color: var(--color-primary); font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
 .portal-loading__brand span { color: #6d9474; }
-.portal-loading__message { color: var(--color-muted); font-size: 13px; }
 
 @media (min-width: 640px) {
   .portal-header { padding-inline: 28px; }

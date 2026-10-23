@@ -67,7 +67,6 @@ function PortalShell({ mode, links }) {
   if (authLoading) return <div className="portal-loading" role="status" aria-live="polite">
     <span className="portal-loading__spinner" aria-hidden="true" />
     <span className="portal-loading__brand">SulitCart<span>.</span></span>
-    <span className="portal-loading__message">Loading your account...</span>
   </div>;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === "staff" && mode === "admin") return <Navigate to="/staff" replace />;
