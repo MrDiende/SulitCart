@@ -24,7 +24,7 @@ const navLinks = [
 export default function StoreLayout() {
   const [open, setOpen] = useState(false);
   const drawer = useAnimatedVisibility(open);
-  const { cart, user, storageError } = useStore();
+  const { cart, user, authLoading, storageError } = useStore();
   const location = useLocation();
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const accountPath = user?.role === "admin" ? "/admin" : user?.role === "staff" ? "/staff/profile" : user ? "/profile" : "/login";
@@ -36,6 +36,12 @@ export default function StoreLayout() {
     return link;
   });
   const activeLink = (isActive) => `store-nav__link ${isActive ? "store-nav__link--active" : ""}`;
+
+  if (authLoading) return <div className="portal-loading" role="status" aria-live="polite">
+    <span className="portal-loading__spinner" aria-hidden="true" />
+    <span className="portal-loading__brand">SulitCart<span>.</span></span>
+    <span className="portal-loading__message">Loading your account...</span>
+  </div>;
 
   return <div className="store-layout">
     <header className="store-header">
