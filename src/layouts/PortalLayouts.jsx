@@ -78,7 +78,7 @@ function PortalShell({ mode, links }) {
     <div className="portal-layout__body">
       <header className="portal-header">
         <div className="portal-header__left"><button onClick={() => setMobileOpen(true)} className="portal-header__menu" aria-label="Open sidebar" aria-expanded={mobileOpen} aria-controls="portal-mobile-navigation"><Menu size={20} aria-hidden="true" /></button><div className="portal-header__title-wrap"><p className="portal-header__eyebrow">{mode} workspace</p><p className="portal-header__title">{routeLabel}</p></div></div>
-        <div className="portal-header__account"><Link to="/" className="portal-header__store">Customer store</Link><span className="portal-header__separator" /><span className="portal-header__name">{user?.name?.split(" ")[0] || (mode === "admin" ? "Lea" : "Marco")}</span></div>
+        <div className="portal-header__account"><span className="portal-header__name">{user?.name?.split(" ")[0] || (mode === "admin" ? "Lea" : "Marco")}</span></div>
       </header>
       <main className="portal-content">
         <Alert message={storageError} type="warning" duration={0} />

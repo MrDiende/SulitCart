@@ -28,13 +28,7 @@ export default function StoreLayout() {
   const location = useLocation();
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const accountPath = user?.role === "admin" ? "/admin" : user?.role === "staff" ? "/staff/profile" : user ? "/profile" : "/login";
-  const displayLinks = navLinks.filter((link) => !link.requiresSignIn || Boolean(user)).map((link) => {
-    if (link.label === "Orders" && user?.role === "staff") return { ...link, to: "/staff/orders", label: "Online orders" };
-    if (link.label === "Orders" && user?.role === "admin") return { ...link, to: "/admin/orders" };
-    if (link.label === "Profile" && user?.role === "staff") return { ...link, to: "/staff/profile" };
-    if (link.label === "Profile" && user?.role === "admin") return { ...link, to: "/admin" };
-    return link;
-  });
+  const displayLinks = navLinks.filter((link) => !link.requiresSignIn || user?.role === "customer");
   const activeLink = (isActive) => `store-nav__link ${isActive ? "store-nav__link--active" : ""}`;
 
   if (authLoading) return <div className="portal-loading" role="status" aria-live="polite">

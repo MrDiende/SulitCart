@@ -11,6 +11,7 @@ import "../../css/CatalogPages.css";
 export function HomePage() {
   const { categories, products, user } = useStore();
   const customerName = user?.role === "customer" && user.active !== false ? user.name?.trim() : "";
+  const dashboardPath = user?.role === "admin" ? "/admin" : user?.role === "staff" ? "/staff" : null;
   const featured = products.filter((item) => item.active && item.stock > 0).slice(0, 4);
   const heroBackgrounds = [
     "/images/hero-realistic/electronics.jpg",
@@ -54,7 +55,10 @@ export function HomePage() {
           <h1 className="catalog-hero__brand">SulitCart<span>.</span></h1>
           <p className="catalog-hero__tagline">Quality products. Simple shopping.</p>
           <div className="catalog-hero__actions">
-            <Link to="/products"><Button variant="light" size="lg" className="catalog-hero__shop">Shop now <ArrowRight size={16} /></Button></Link>
+            <div className="catalog-hero__primary-actions">
+              <Link to="/products"><Button variant="light" size="lg" className="catalog-hero__shop">Shop now <ArrowRight size={16} /></Button></Link>
+              {dashboardPath && <Link to={dashboardPath}><Button variant="secondary" size="lg" className="catalog-hero__browse"><ArrowLeft size={16} />Back to Dashboard</Button></Link>}
+            </div>
             <Link to="/categories"><Button variant="secondary" size="lg" className="catalog-hero__browse">Browse categories</Button></Link>
           </div>
         </div>

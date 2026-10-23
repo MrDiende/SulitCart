@@ -12,6 +12,7 @@
 .catalog-hero__tagline { max-width: 448px; margin-top: 20px; font-size: 18px; font-weight: 500; letter-spacing: -0.025em; color: #f3f5ef; }
 .catalog-hero__actions { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
 .catalog-hero__actions > a { display: block; }
+.catalog-hero__primary-actions { display: flex; flex-direction: column; gap: 12px; }
 .catalog-hero .catalog-hero__shop { width: 100%; }
 .catalog-hero .catalog-hero__browse { width: 100%; border-color: rgb(255 255 255 / 30%); background: rgb(255 255 255 / 10%); color: #fff; }
 .catalog-hero .catalog-hero__browse:hover { background: rgb(255 255 255 / 20%); }
@@ -88,6 +89,7 @@
   .catalog-hero__brand { font-size: 76px; }
   .catalog-hero__tagline { font-size: 21px; }
   .catalog-hero__actions { flex-direction: row; }
+  .catalog-hero__primary-actions { flex-direction: column; }
   .catalog-hero .catalog-hero__shop, .catalog-hero .catalog-hero__browse { width: auto; }
   .catalog-section { padding: 96px 32px 0; }
   .catalog-section--categories { padding-top: 80px; }

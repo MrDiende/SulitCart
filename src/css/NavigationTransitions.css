@@ -2,7 +2,7 @@
 .page-transition--enter { animation: navigation-page-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .store-nav__link, .store-drawer__link, .store-drawer__account,
-.portal-sidebar__link, .portal-sidebar__store, .portal-header__store,
+.portal-sidebar__link, .portal-sidebar__store,
 .admin-order-tabs__link {
   transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease;
 }
