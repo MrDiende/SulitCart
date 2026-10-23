@@ -28,6 +28,7 @@ export default function StoreLayout() {
   const location = useLocation();
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const accountPath = user?.role === "admin" ? "/admin" : user?.role === "staff" ? "/staff/profile" : user ? "/profile" : "/login";
+  const accountLabel = user?.name?.trim().split(/\s+/)[0] || (user?.role === "admin" ? "Admin" : user?.role === "staff" ? "Staff" : user ? "My account" : "Sign in");
   const displayLinks = navLinks.filter((link) => !link.requiresSignIn || user?.role === "customer");
   const activeLink = (isActive) => `store-nav__link ${isActive ? "store-nav__link--active" : ""}`;
 
@@ -49,7 +50,7 @@ export default function StoreLayout() {
             {cartCount > 0 && <span className="store-header__count" aria-hidden="true">{cartCount}</span>}
           </Link>
           <Link to={user ? (user.role === "customer" ? "/profile" : user.role === "admin" ? "/admin" : "/staff") : "/login"} className="store-header__account">
-            {user ? user.name.split(" ")[0] : "Sign in"}
+            {accountLabel}
           </Link>
         </div>
         <div className="store-header__mobile-actions">
