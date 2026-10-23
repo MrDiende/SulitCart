@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Edit2, Eye, Search, Tags, Trash2 } from "lucide-react";
+import { Check, Edit2, Eye, Plus, Search, Tags, Trash2 } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 import { formatPHP } from "../../utils";
 import Alert from "../../components/Alert";
