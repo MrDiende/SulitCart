@@ -133,6 +133,10 @@ alter table public.audit_logs enable row level security;
 -- table access before the profile policies can allow per-role reads/writes.
 grant select, insert, update on table public.profiles to authenticated;
 grant all on table public.profiles to service_role;
+grant select on table public.categories, public.products, public.shipping_rates to anon, authenticated;
+grant insert, update, delete on table public.categories, public.products, public.shipping_rates to authenticated;
+grant select, insert, update, delete on table public.orders, public.order_items,
+  public.inventory_transactions, public.audit_logs to authenticated;
 
 -- Profiles: customers can read/update only themselves. Staff/admin can read profiles.
 drop policy if exists "profiles_select_self_or_staff" on public.profiles;
