@@ -51,7 +51,40 @@ export function CartPage() {
   </div>;
 }
 
-const municipalities = ["Cabanatuan City", "Gapan City", "Palayan City", "San Jose City", "Santa Rosa", "Talavera", "Bongabon"];
+const municipalities = [
+  "Cabanatuan City",
+  "Gapan City",
+  "Palayan City",
+  "San Jose City",
+  "Science City of Muñoz",
+  "Aliaga",
+  "Bongabon",
+  "Cabiao",
+  "Carranglan",
+  "Cuyapo",
+  "Gabaldon",
+  "General Mamerto Natividad",
+  "General Tinio",
+  "Guimba",
+  "Jaen",
+  "Laur",
+  "Licab",
+  "Llanera",
+  "Lupao",
+  "Nampicuan",
+  "Pantabangan",
+  "Peñaranda",
+  "Quezon",
+  "Rizal",
+  "San Antonio",
+  "San Isidro",
+  "San Leonardo",
+  "Santa Rosa",
+  "Santo Domingo",
+  "Talavera",
+  "Talugtug",
+  "Zaragoza",
+];
 
 export function CheckoutPage() {
   const { cart, products, getShippingFee, placeOrder, user } = useStore();
