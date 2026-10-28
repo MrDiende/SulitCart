@@ -113,7 +113,7 @@ export function ProfilePage() {
   const { user, updateProfile, logout } = useStore();
   const { notify, dismiss } = useAlert();
   const navigate = useNavigate();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing, clearEditingDraft] = usePersistentDraft(`sulitcart:profile-editing:${user?.id || "anonymous"}`, false);
   const [saved, setSaved] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ password: "", confirm: "" });
   const [passwordError, setPasswordError] = useState("");
@@ -140,6 +140,7 @@ export function ProfilePage() {
     const result = await updateProfile(form);
     if (result?.error) { notify(result.error, { type: "error" }); return; }
     clearDraft();
+    clearEditingDraft();
     setEditing(false);
     setSaved(true);
   };
@@ -149,7 +150,7 @@ export function ProfilePage() {
     <div className="profile-grid">
       <Surface className="profile-details"><div className="profile-details__header"><div><h2>Personal details</h2><p>Used for order and delivery updates.</p></div>{!editing && <Button variant="secondary" size="sm" onClick={() => setEditing(true)}><Pencil size={14} /> Edit profile</Button>}</div>
         <Alert message={saved ? "Profile saved." : ""} onDismiss={() => setSaved(false)} />
-        {editing ? <form onSubmit={submit} className="profile-form"><Alert message={draftError} type="warning" /><Field label="Full name"><TextInput value={form.name} onChange={update("name")} required /></Field><Field label="Email address"><TextInput value={form.email} type="email" onChange={update("email")} required /></Field><Field label="Phone number"><TextInput value={form.phone} onChange={update("phone")} type="tel" /></Field><Field label="Delivery address"><TextInput value={form.address} onChange={update("address")} placeholder="Add your usual delivery address" /></Field><div className="profile-form__actions"><Button type="submit">Save changes</Button><Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button></div></form>
+        {editing ? <form onSubmit={submit} className="profile-form"><Alert message={draftError} type="warning" /><Field label="Full name"><TextInput value={form.name} onChange={update("name")} required /></Field><Field label="Email address"><TextInput value={form.email} type="email" onChange={update("email")} required /></Field><Field label="Phone number"><TextInput value={form.phone} onChange={update("phone")} type="tel" /></Field><Field label="Delivery address"><TextInput value={form.address} onChange={update("address")} placeholder="Add your usual delivery address" /></Field><div className="profile-form__actions"><Button type="submit">Save changes</Button><Button variant="secondary" onClick={() => { clearEditingDraft(); setEditing(false); }}>Cancel</Button></div></form>
           : <div className="profile-details__list">{[[UserRound, "Full name", form.name], [Mail, "Email address", form.email], [Phone, "Phone number", form.phone || "Not added"], [MapPin, "Delivery address", form.address || "Add an address at checkout"]].map(([Icon, label, value]) => <div key={label} className="profile-details__item"><Icon size={16} /><div><p className="profile-details__label">{label}</p><p className="profile-details__value">{value}</p></div></div>)}</div>}
       </Surface>
       <Surface className="profile-details profile-password">

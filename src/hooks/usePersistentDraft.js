@@ -5,6 +5,15 @@ function readDraft(key, initialValue) {
     const saved = window.localStorage.getItem(key);
     if (!saved) return { value: initialValue, error: "" };
     const parsed = JSON.parse(saved);
+    if (initialValue === null) return { value: parsed, error: "" };
+    if (Array.isArray(initialValue)) {
+      if (!Array.isArray(parsed)) throw new Error("Saved draft has an invalid format.");
+      return { value: parsed, error: "" };
+    }
+    if (typeof initialValue !== "object") {
+      if (typeof parsed !== typeof initialValue) throw new Error("Saved draft has an invalid format.");
+      return { value: parsed, error: "" };
+    }
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("Saved draft has an invalid format.");
     }

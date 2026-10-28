@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, MapPin, Minus, Plus, Search, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 import { formatPHP, getStockStatus } from "../../utils";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import ProductCard from "../../components/ProductCard";
 import CategoryLink from "../../components/CategoryLink";
 import { Button, EmptyState, PageTitle, StatusBadge } from "../../components/UI";
@@ -102,8 +103,10 @@ export function CategoriesPage() {
 export function ProductsPage() {
   const { products, categories } = useStore();
   const [params, setParams] = useSearchParams();
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("featured");
+  const [filters, setFilters] = usePersistentDraft("sulitcart:catalog-filters", { query: "", sort: "featured" });
+  const { query, sort } = filters;
+  const setQuery = (value) => setFilters((current) => ({ ...current, query: value }));
+  const setSort = (value) => setFilters((current) => ({ ...current, sort: value }));
   const selected = categories.some((category) => category.id === params.get("category")) ? params.get("category") : "all";
   const filtered = useMemo(() => {
     let results = products.filter((product) => product.active && product.name.toLowerCase().includes(query.toLowerCase()) && (selected === "all" || product.category === selected));
@@ -131,7 +134,7 @@ export function ProductsPage() {
 export function ProductDetailsPage() {
   const { id } = useParams();
   const { products, categories, addToCart } = useStore();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = usePersistentDraft(`sulitcart:product-quantity:${id}`, 1);
   const [added, setAdded] = useState(false);
   const product = products.find((item) => item.id === id);
   if (!product) return <div className="catalog-not-found"><EmptyState icon={ShoppingBag} title="Product not found" description="This product may have been removed from the shelves." action={<Link to="/products"><Button>Back to products</Button></Link>} /></div>;

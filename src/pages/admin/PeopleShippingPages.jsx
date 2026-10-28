@@ -14,9 +14,9 @@ function CustomerInfoModal({ customer, onClose }) {
 }
 
 export function AdminCustomersPage() {
-  const { customers, toggleCustomer } = useStore();
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState(null);
+  const { customers, toggleCustomer, user } = useStore();
+  const [query, setQuery] = usePersistentDraft(`sulitcart:customer-search:${user?.id || "anonymous"}`, "");
+  const [selected, setSelected] = usePersistentDraft(`sulitcart:customer-details:${user?.id || "anonymous"}`, null);
   const [feedback, setFeedback] = useState("");
   const filtered = useMemo(() => customers.filter((person) => `${person.name} ${person.email} ${person.phone}`.toLowerCase().includes(query.toLowerCase())), [customers, query]);
   const toggle = async (person) => {
@@ -90,12 +90,12 @@ function StaffForm({ open, onClose, initial, onSave }) {
 }
 
 export function AdminStaffPage() {
-  const { staff, upsertStaff, toggleStaff } = useStore();
+  const { staff, upsertStaff, toggleStaff, user } = useStore();
   const { notify } = useAlert();
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [editor, setEditor] = usePersistentDraft(`sulitcart:staff-editor:${user?.id || "anonymous"}`, { open: false, selected: null });
+  const { open, selected } = editor;
   const [feedback, setFeedback] = useState("");
-  const close = () => { setOpen(false); setSelected(null); };
+  const close = () => setEditor({ open: false, selected: null });
   const save = async (person) => {
     const result = await upsertStaff(person);
     if (result?.error) return result;
@@ -112,9 +112,9 @@ export function AdminStaffPage() {
     }
   };
   return <>
-    <PageTitle eyebrow="Store team" title="Staff" description={`${staff.length} staff accounts.`} action={<Button onClick={() => { setSelected(null); setOpen(true); }}><UserPlus size={16} /> Add staff</Button>} />
+    <PageTitle eyebrow="Store team" title="Staff" description={`${staff.length} staff accounts.`} action={<Button onClick={() => setEditor({ open: true, selected: null })}><UserPlus size={16} /> Add staff</Button>} />
     <Alert message={feedback} type="error" onDismiss={() => setFeedback("")} />
-    <Surface className="people-table"><TableWrap><thead><tr>{["Staff member", "Phone", "Status", "Date created", "Actions"].map((label) => <th key={label} className={thClass}>{label}</th>)}</tr></thead><tbody>{staff.map((person) => <tr key={person.id}><td className={tdClass}><p className="people-table__name">{person.name}</p><p className="people-table__email">{person.email}</p></td><td className={`${tdClass} ui-table-cell--nowrap ui-table-cell--small`}>{person.phone}</td><td className={tdClass}><StatusBadge status={person.active ? "Active" : "Inactive"} /></td><td className={`${tdClass} ui-table-cell--nowrap ui-table-cell--small ui-table-cell--muted`}>{formatDate(person.created)}</td><td className={tdClass}><div className="people-row-actions"><button title="Edit" onClick={() => { setSelected({ ...person }); setOpen(true); }} className="people-icon-action"><Edit2 size={15} /></button><button title={person.active ? "Deactivate" : "Activate"} onClick={() => toggle(person)} className="people-icon-action">{person.active ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}</button></div></td></tr>)}</tbody></TableWrap></Surface>
+    <Surface className="people-table"><TableWrap><thead><tr>{["Staff member", "Phone", "Status", "Date created", "Actions"].map((label) => <th key={label} className={thClass}>{label}</th>)}</tr></thead><tbody>{staff.map((person) => <tr key={person.id}><td className={tdClass}><p className="people-table__name">{person.name}</p><p className="people-table__email">{person.email}</p></td><td className={`${tdClass} ui-table-cell--nowrap ui-table-cell--small`}>{person.phone}</td><td className={tdClass}><StatusBadge status={person.active ? "Active" : "Inactive"} /></td><td className={`${tdClass} ui-table-cell--nowrap ui-table-cell--small ui-table-cell--muted`}>{formatDate(person.created)}</td><td className={tdClass}><div className="people-row-actions"><button title="Edit" onClick={() => setEditor({ open: true, selected: person })} className="people-icon-action"><Edit2 size={15} /></button><button title={person.active ? "Deactivate" : "Activate"} onClick={() => toggle(person)} className="people-icon-action">{person.active ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}</button></div></td></tr>)}</tbody></TableWrap></Surface>
     {open && <StaffForm open onClose={close} initial={selected} onSave={save} />}
   </>;
 }
@@ -149,16 +149,16 @@ function ShippingForm({ open, onClose, initial, onSave }) {
 }
 
 export function AdminShippingPage() {
-  const { shipping, upsertShippingRate, deleteShippingRate } = useStore();
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const { shipping, upsertShippingRate, deleteShippingRate, user } = useStore();
+  const [editor, setEditor] = usePersistentDraft(`sulitcart:shipping-editor:${user?.id || "anonymous"}`, { open: false, selected: null });
+  const { open, selected } = editor;
   const [feedback, setFeedback] = useState("");
-  const [municipalityFilter, setMunicipalityFilter] = useState("All municipalities");
+  const [municipalityFilter, setMunicipalityFilter] = usePersistentDraft(`sulitcart:shipping-filter:${user?.id || "anonymous"}`, "All municipalities");
   const municipalityOptions = useMemo(() => [...new Set(shipping.map((rate) => rate.municipality))].sort((a, b) => a.localeCompare(b)), [shipping]);
   const visibleShipping = useMemo(() => municipalityFilter === "All municipalities"
     ? shipping
     : shipping.filter((rate) => rate.municipality === municipalityFilter), [shipping, municipalityFilter]);
-  const close = () => { setOpen(false); setSelected(null); };
+  const close = () => setEditor({ open: false, selected: null });
   const save = async (rate) => {
     const result = await upsertShippingRate(rate);
     if (result?.error) return result;
@@ -182,7 +182,7 @@ export function AdminShippingPage() {
     }
   };
   return <>
-    <PageTitle eyebrow="Nueva Ecija only" title="Shipping" description="Manage delivery fees by municipality and barangay." action={<Button onClick={() => { setSelected(null); setOpen(true); }}><Plus size={16} /> Add rate</Button>} />
+    <PageTitle eyebrow="Nueva Ecija only" title="Shipping" description="Manage delivery fees by municipality and barangay." action={<Button onClick={() => setEditor({ open: true, selected: null })}><Plus size={16} /> Add rate</Button>} />
     <Alert message={feedback} type="error" onDismiss={() => setFeedback("")} />
     <div className="shipping-notice"><Truck size={16} /><span>Checkout uses active location rates. Barangay-specific fees take priority over the default rate.</span></div>
     <Surface className="people-table">
@@ -196,16 +196,18 @@ export function AdminShippingPage() {
           </SelectInput>
         </label>
       </div>
-      <TableWrap><thead><tr>{["Municipality", "Barangay", "Shipping fee", "Status", "Actions"].map((label) => <th key={label} className={thClass}>{label}</th>)}</tr></thead><tbody>{visibleShipping.length ? visibleShipping.map((rate) => <tr key={rate.id}><td className={`${tdClass} ui-table-cell--medium`}>{rate.municipality}</td><td className={tdClass}>{rate.barangay === "*" ? <span className="shipping-table__default">All barangays</span> : rate.barangay}</td><td className={`${tdClass} ui-table-cell--strong`}>{formatPHP(rate.fee)}</td><td className={tdClass}><StatusBadge status={rate.active ? "Active" : "Inactive"} /></td><td className={tdClass}><div className="people-row-actions"><button title="Edit" onClick={() => { setSelected({ ...rate }); setOpen(true); }} className="people-icon-action"><Edit2 size={15} /></button><button title={rate.active ? "Deactivate" : "Activate"} onClick={() => toggle(rate)} className="people-icon-action">{rate.active ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}</button><button title="Delete" onClick={() => window.confirm("Delete this delivery rate?") && remove(rate)} className="people-icon-action people-icon-action--danger"><Trash2 size={15} /></button></div></td></tr>) : <tr><td colSpan="5" className={`${tdClass} ui-table-cell--empty`}>No rates for this municipality.</td></tr>}</tbody></TableWrap>
+      <TableWrap><thead><tr>{["Municipality", "Barangay", "Shipping fee", "Status", "Actions"].map((label) => <th key={label} className={thClass}>{label}</th>)}</tr></thead><tbody>{visibleShipping.length ? visibleShipping.map((rate) => <tr key={rate.id}><td className={`${tdClass} ui-table-cell--medium`}>{rate.municipality}</td><td className={tdClass}>{rate.barangay === "*" ? <span className="shipping-table__default">All barangays</span> : rate.barangay}</td><td className={`${tdClass} ui-table-cell--strong`}>{formatPHP(rate.fee)}</td><td className={tdClass}><StatusBadge status={rate.active ? "Active" : "Inactive"} /></td><td className={tdClass}><div className="people-row-actions"><button title="Edit" onClick={() => setEditor({ open: true, selected: rate })} className="people-icon-action"><Edit2 size={15} /></button><button title={rate.active ? "Deactivate" : "Activate"} onClick={() => toggle(rate)} className="people-icon-action">{rate.active ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}</button><button title="Delete" onClick={() => window.confirm("Delete this delivery rate?") && remove(rate)} className="people-icon-action people-icon-action--danger"><Trash2 size={15} /></button></div></td></tr>) : <tr><td colSpan="5" className={`${tdClass} ui-table-cell--empty`}>No rates for this municipality.</td></tr>}</tbody></TableWrap>
     </Surface>
     {open && <ShippingForm open onClose={close} initial={selected} onSave={save} />}
   </>;
 }
 
 export function AdminAuditPage() {
-  const { auditLogs } = useStore();
-  const [query, setQuery] = useState("");
-  const [role, setRole] = useState("All roles");
+  const { auditLogs, user } = useStore();
+  const [filters, setFilters] = usePersistentDraft(`sulitcart:audit-filters:${user?.id || "anonymous"}`, { query: "", role: "All roles" });
+  const { query, role } = filters;
+  const setQuery = (value) => setFilters((current) => ({ ...current, query: value }));
+  const setRole = (value) => setFilters((current) => ({ ...current, role: value }));
   const filtered = useMemo(() => auditLogs.filter((log) => (role === "All roles" || log.role === role) && `${log.user} ${log.action} ${log.description}`.toLowerCase().includes(query.toLowerCase())), [auditLogs, role, query]);
   return <>
     <PageTitle eyebrow="Store activity" title="Audit logs" description="A persistent history of changes made across the store." />

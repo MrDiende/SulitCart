@@ -225,8 +225,8 @@ export function CheckoutPage() {
 }
 
 export function OrdersPage() {
-  const { orders } = useStore();
-  const [status, setStatus] = useState("All orders");
+  const { orders, user } = useStore();
+  const [status, setStatus] = usePersistentDraft(`sulitcart:customer-order-filter:${user?.id || "anonymous"}`, "All orders");
   const visible = useMemo(() => orders.filter(isOnlineOrder).filter((order) => status === "All orders" || order.status === status), [orders, status]);
   const statuses = ["All orders", "Pending", "Confirmed", "Packed", "Shipped", "Completed", "Cancelled"];
   return <div className="customer-orders-page">

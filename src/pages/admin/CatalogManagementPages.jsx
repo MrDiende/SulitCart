@@ -10,14 +10,26 @@ import { Button, EmptyState, Field, Modal, PageTitle, StatusBadge, Surface, Tabl
 import "../../css/CatalogManagementPages.css";
 
 export function AdminProductsPage() {
-  const { products, categories, upsertProduct, deleteProduct } = useStore();
-  const [query, setQuery] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const { products, categories, upsertProduct, deleteProduct, user } = useStore();
+  const productDraftKey = `sulitcart:product-draft:${user?.id || "anonymous"}:new`;
+  const editorStateKey = `sulitcart:product-editor:${user?.id || "anonymous"}`;
+  const [query, setQuery] = usePersistentDraft(`sulitcart:product-search:${user?.id || "anonymous"}`, "");
+  const [editor, setEditor] = usePersistentDraft(editorStateKey, (() => {
+    try {
+      const savedEditorState = window.localStorage.getItem(editorStateKey);
+      if (savedEditorState) return { open: false, selected: null };
+      return { open: Boolean(window.localStorage.getItem(productDraftKey)), selected: null };
+    } catch (error) {
+      console.error("Could not check for a saved product draft:", error);
+      return { open: false, selected: null };
+    }
+  })());
+  const editorOpen = editor.open;
+  const selected = editor.selected;
   const [feedback, setFeedback] = useState(null);
   const filtered = useMemo(() => products.filter((product) => `${product.name} ${product.sku}`.toLowerCase().includes(query.toLowerCase())), [products, query]);
-  const edit = (product) => { setSelected({ ...product }); setEditorOpen(true); };
-  const close = () => { setEditorOpen(false); setSelected(null); };
+  const edit = (product) => setEditor({ open: true, selected: product });
+  const close = () => setEditor({ open: false, selected: null });
   const save = async (product) => {
     const result = await upsertProduct(product);
     if (result?.error) return result;
@@ -43,7 +55,7 @@ export function AdminProductsPage() {
   };
 
   return <>
-    <PageTitle eyebrow="Catalog" title="Products" description={`${products.length} products in your store catalog.`} action={<Button onClick={() => { setSelected(null); setEditorOpen(true); }}>Add product</Button>} />
+    <PageTitle eyebrow="Catalog" title="Products" description={`${products.length} products in your store catalog.`} action={<Button onClick={() => setEditor({ open: true, selected: null })}>Add product</Button>} />
     <Alert message={feedback?.text} type={feedback?.error ? "error" : "success"} trigger={feedback} onDismiss={() => setFeedback(null)} />
     <Surface className="admin-catalog-table">
       <div className="admin-catalog-table__toolbar">
@@ -99,11 +111,11 @@ function CategoryForm({ open, onClose, initial, onSave }) {
 }
 
 export function AdminCategoriesPage() {
-  const { categories, products, upsertCategory, deleteCategory } = useStore();
-  const [selected, setSelected] = useState(null);
-  const [open, setOpen] = useState(false);
+  const { categories, products, upsertCategory, deleteCategory, user } = useStore();
+  const [editor, setEditor] = usePersistentDraft(`sulitcart:category-editor:${user?.id || "anonymous"}`, { open: false, selected: null });
+  const { selected, open } = editor;
   const [feedback, setFeedback] = useState("");
-  const close = () => { setOpen(false); setSelected(null); };
+  const close = () => setEditor({ open: false, selected: null });
   const save = async (form) => {
     const result = await upsertCategory({ ...form, name: form.name.trim() });
     if (result?.error) return result;
@@ -119,11 +131,11 @@ export function AdminCategoriesPage() {
     }
   };
   return <>
-    <PageTitle eyebrow="Catalog organization" title="Categories" description="Keep your product catalog easy to browse." action={<Button onClick={() => { setSelected(null); setOpen(true); }}><Plus size={16} /> Add category</Button>} />
+    <PageTitle eyebrow="Catalog organization" title="Categories" description="Keep your product catalog easy to browse." action={<Button onClick={() => setEditor({ open: true, selected: null })}><Plus size={16} /> Add category</Button>} />
     <Alert message={feedback} type="error" onDismiss={() => setFeedback("")} />
     <div className="admin-categories-grid">{categories.map((category) => <Surface key={category.id} className="admin-category">
       <div className="admin-category__body"><h2>{category.name}</h2><p className="admin-category__description">{category.description || "No description"}</p><p className="admin-category__count">{products.filter((item) => item.category === category.id).length} products</p></div>
-      <div className="admin-category__actions"><Button size="sm" variant="ghost" onClick={() => { setSelected({ ...category }); setOpen(true); }}><Edit2 size={14} /> Edit</Button><Button size="sm" variant="ghost" className="admin-category__delete" onClick={() => window.confirm(`Delete ${category.name}?`) && remove(category)}><Trash2 size={14} /> Delete</Button></div>
+      <div className="admin-category__actions"><Button size="sm" variant="ghost" onClick={() => setEditor({ open: true, selected: category })}><Edit2 size={14} /> Edit</Button><Button size="sm" variant="ghost" className="admin-category__delete" onClick={() => window.confirm(`Delete ${category.name}?`) && remove(category)}><Trash2 size={14} /> Delete</Button></div>
     </Surface>)}</div>
     {!categories.length && <EmptyState icon={Tags} title="No categories yet" description="Add a category to help shoppers find products." />}
     {open && <CategoryForm open onClose={close} initial={selected} onSave={save} />}

@@ -27,8 +27,8 @@ export function StaffDashboardPage() {
 }
 
 export function StaffOrdersPage() {
-  const { orders, changeOrderStatus } = useStore();
-  const [status, setStatus] = useState("Needs action");
+  const { orders, changeOrderStatus, user } = useStore();
+  const [status, setStatus] = usePersistentDraft(`sulitcart:staff-order-filter:${user?.id || "anonymous"}`, "Needs action");
   const [error, setError] = useState("");
   const updateStatus = async (orderId, next) => {
     try {
@@ -57,8 +57,10 @@ export function StaffOrdersPage() {
 
 export function WalkInSalesPage() {
   const { products, categories, commitSale, user } = useStore();
-  const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [filters, setFilters] = usePersistentDraft(`sulitcart:walk-in-sale-filters:${user?.id || "anonymous"}`, { query: "", categoryFilter: "all" });
+  const { query, categoryFilter } = filters;
+  const setQuery = (value) => setFilters((current) => ({ ...current, query: value }));
+  const setCategoryFilter = (value) => setFilters((current) => ({ ...current, categoryFilter: value }));
   const [saleDraft, setSaleDraft, clearSaleDraft, draftError] = usePersistentDraft(
     `sulitcart:walk-in-sale-draft:${user?.id || "anonymous"}`,
     { saleItems: [], customerName: "", payment: "Cash" },

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Eye, ReceiptText, Search } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import { formatDate, formatPHP, isOnlineOrder } from "../../utils";
 import { PRODUCT_IMAGE_PLACEHOLDER } from "../../utils/productImage";
 import { Button, EmptyState, Modal, Surface, TableWrap, thClass, tdClass } from "../../components/UI";
@@ -33,9 +34,9 @@ function SaleDetails({ sale, onClose }) {
 }
 
 export default function WalkInSalesRecords() {
-  const { orders, inventory, auditLogs } = useStore();
-  const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState(null);
+  const { orders, inventory, auditLogs, user } = useStore();
+  const [query, setQuery] = usePersistentDraft(`sulitcart:walk-in-record-search:${user?.id || "anonymous"}`, "");
+  const [selectedId, setSelectedId] = usePersistentDraft(`sulitcart:walk-in-record-details:${user?.id || "anonymous"}`, null);
   const records = useMemo(() => orders.filter((order) => !isOnlineOrder(order)).map((sale) => ({
     ...sale,
     operator: sale.processedBy

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { formatDate, formatPHP, getStockStatus, isOnlineOrder } from "../../utils";
 import { useStore } from "../../context/StoreContext";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import { ArrowRight, ClipboardList, Eye, Plus, ReceiptText, Search, X } from "lucide-react";
 import Alert from "../../components/Alert";
 import InventoryTransactionHistory from "../../components/InventoryTransactionHistory";
@@ -12,11 +13,13 @@ import { Button, Field, Modal, PageTitle, SelectInput, StatusBadge, Surface, Tab
 import "../../css/InventoryOrderPages.css";
 
 export function AdminInventoryPage() {
-  const { products, categories, inventory, adjustStock } = useStore();
-  const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [stockDialog, setStockDialog] = useState(null);
+  const { products, categories, inventory, adjustStock, user } = useStore();
+  const [filters, setFilters] = usePersistentDraft(`sulitcart:inventory-filters:${user?.id || "anonymous"}`, { query: "", categoryFilter: "all", statusFilter: "all" });
+  const { query, categoryFilter, statusFilter } = filters;
+  const setQuery = (value) => setFilters((current) => ({ ...current, query: value }));
+  const setCategoryFilter = (value) => setFilters((current) => ({ ...current, categoryFilter: value }));
+  const setStatusFilter = (value) => setFilters((current) => ({ ...current, statusFilter: value }));
+  const [stockDialog, setStockDialog] = usePersistentDraft(`sulitcart:inventory-dialog:${user?.id || "anonymous"}`, null);
   const [feedback, setFeedback] = useState("");
   const filtered = useMemo(() => products.filter((product) =>
     `${product.name} ${product.sku}`.toLowerCase().includes(query.trim().toLowerCase())
@@ -81,9 +84,9 @@ function OrderDetailsModal({ order, onClose }) {
 }
 
 function OnlineOrdersPanel() {
-  const { orders, changeOrderStatus } = useStore();
-  const [status, setStatus] = useState("All orders");
-  const [selected, setSelected] = useState(null);
+  const { orders, changeOrderStatus, user } = useStore();
+  const [status, setStatus] = usePersistentDraft(`sulitcart:admin-order-filter:${user?.id || "anonymous"}`, "All orders");
+  const [selected, setSelected] = usePersistentDraft(`sulitcart:admin-order-details:${user?.id || "anonymous"}`, null);
   const [feedback, setFeedback] = useState("");
   const updateStatus = async (orderId, nextStatus) => {
     try {

@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BarChart3 } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import { formatDate, formatPHP, getStockStatus } from "../../utils";
 import { PageTitle, StatusBadge, Surface, TableWrap, thClass, tdClass } from "../../components/UI";
 import SalesChart from "../../components/SalesChart";
@@ -60,8 +61,8 @@ function DateFilter({ period, setPeriod }) {
 }
 
 export function ReportsPage() {
-  const { orders, products, customers } = useStore();
-  const [period, setPeriod] = useState(30);
+  const { orders, products, customers, user } = useStore();
+  const [period, setPeriod] = usePersistentDraft(`sulitcart:report-period:${user?.id || "anonymous"}`, 30);
   const filtered = useMemo(() => periodOrders(orders, period), [orders, period]);
   const periodLabel = periods.find((item) => item.days === period)?.label || `${period} days`;
   const completed = filtered.filter((order) => order.status === "Completed");
