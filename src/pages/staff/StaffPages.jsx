@@ -4,6 +4,7 @@ import { ArrowRight, Minus, Plus, Search, ShoppingCart, UserRound } from "lucide
 import { useStore } from "../../context/StoreContext";
 import { formatDate, formatPHP } from "../../utils";
 import Alert from "../../components/Alert";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import { Button, EmptyState, Field, PageTitle, SelectInput, StatusBadge, Surface, TableWrap, TextInput, thClass, tdClass } from "../../components/UI";
 import "../../css/StaffPages.css";
 
@@ -58,9 +59,17 @@ export function WalkInSalesPage() {
   const { products, categories, commitSale, user } = useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [saleItems, setSaleItems] = useState([]);
-  const [customerName, setCustomerName] = useState("");
-  const [payment, setPayment] = useState("Cash");
+  const [saleDraft, setSaleDraft, clearSaleDraft, draftError] = usePersistentDraft(
+    `sulitcart:walk-in-sale-draft:${user?.id || "anonymous"}`,
+    { saleItems: [], customerName: "", payment: "Cash" },
+  );
+  const { saleItems, customerName, payment } = saleDraft;
+  const setSaleItems = (nextItems) => setSaleDraft((current) => ({
+    ...current,
+    saleItems: typeof nextItems === "function" ? nextItems(current.saleItems) : nextItems,
+  }));
+  const setCustomerName = (nextName) => setSaleDraft((current) => ({ ...current, customerName: nextName }));
+  const setPayment = (nextPayment) => setSaleDraft((current) => ({ ...current, payment: nextPayment }));
   const [message, setMessage] = useState("");
   const filtered = useMemo(() => products.filter((product) => product.active
     && product.stock > 0
@@ -87,8 +96,8 @@ export function WalkInSalesPage() {
       const sale = await commitSale({ items: saleItems, customerName: customerName.trim() || "Walk-in customer", payment });
       if (!sale) { setMessage("Some items are no longer available in this quantity."); return; }
       if (sale.error) { setMessage(sale.error); return; }
-      setSaleItems([]);
-      setCustomerName("");
+      clearSaleDraft();
+      setSaleDraft({ saleItems: [], customerName: "", payment });
       setMessage(`${sale.number} completed. Stock has been updated.`);
     } catch (error) {
       setMessage(error.message || "Could not save this sale.");
@@ -101,6 +110,7 @@ export function WalkInSalesPage() {
   return <>
     <PageTitle eyebrow="Point of sale" title="Walk-in sales" description="Build a basket, choose a payment method, and complete the sale." />
     <Alert message={message} type={saleSucceeded ? "success" : "warning"} duration={5000} onDismiss={() => setMessage("")} />
+    <Alert message={draftError} type="warning" />
     <div className="pos-grid">
       <div className="pos-catalog">
         <div className="pos-filters">

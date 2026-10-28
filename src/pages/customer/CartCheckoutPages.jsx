@@ -5,6 +5,7 @@ import { useStore } from "../../context/StoreContext";
 import { formatDate, formatPHP, isOnlineOrder } from "../../utils";
 import Alert, { useAlert } from "../../components/Alert";
 import { checkoutLoginPath, checkoutSignInMessage } from "../../components/RequireCustomerCheckout";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import { Button, EmptyState, Field, PageTitle, SelectInput, StatusBadge, Surface, TextArea, TextInput } from "../../components/UI";
 import "../../css/CartCheckoutPages.css";
 
@@ -90,7 +91,8 @@ export function CheckoutPage() {
   const { cart, products, getShippingFee, placeOrder, user } = useStore();
   const { notify } = useAlert();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ fullName: user?.name || "", phone: user?.phone || "", province: "Nueva Ecija", municipality: "Cabanatuan City", barangay: "", address: "", notes: "" });
+  const draftKey = `sulitcart:checkout-draft:${user?.id || "anonymous"}`;
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft(draftKey, { fullName: user?.name || "", phone: user?.phone || "", province: "Nueva Ecija", municipality: "Cabanatuan City", barangay: "", address: "", notes: "" });
   const [errors, setErrors] = useState({});
   const [barangays, setBarangays] = useState([]);
   const [barangaysLoading, setBarangaysLoading] = useState(true);
@@ -160,7 +162,10 @@ export function CheckoutPage() {
       }
       if (!order) setErrors({ form: "One or more products are no longer available in the selected quantity." });
       else if (order.error) setErrors({ form: order.error });
-      else navigate(`/orders/${order.id}?placed=1`);
+      else {
+        clearDraft();
+        navigate(`/orders/${order.id}?placed=1`);
+      }
     } catch (error) {
       setErrors({ form: error.message || "Could not place your order." });
     } finally {
@@ -183,6 +188,7 @@ export function CheckoutPage() {
         </Surface>
         <Surface className="checkout-section">
           <div className="checkout-section__header"><span className="checkout-section__number">02</span><div><h2>Delivery address</h2><p>Delivery available across Nueva Ecija only.</p></div></div>
+          <Alert message={draftError} type="warning" />
           <div className="checkout-fields">
             <Field label="Province"><SelectInput value={form.province} disabled><option value="Nueva Ecija">Nueva Ecija</option></SelectInput></Field>
             <Field label="Municipality / city" error={errors.municipality}><SelectInput value={form.municipality} onChange={updateMunicipality}><option value="">Choose municipality</option>{municipalities.map((place) => <option key={place.code} value={place.name}>{place.name}</option>)}</SelectInput></Field>

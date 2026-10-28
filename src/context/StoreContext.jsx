@@ -768,7 +768,13 @@ export function StoreProvider({ children }) {
       return { error: `Signed in, but the account profile could not be loaded: ${reason}${signOutError ? ` Sign-out also failed: ${signOutError.message}` : ""}` };
     }
     const signedIn = { id: profile.id, name: profile.full_name, email: profile.email, phone: profile.phone, address: profile.address, role: profile.role, active: profile.active };
-    if (signedIn.active === false) { await supabase.auth.signOut(); return { error: "This account is inactive. Please contact the store team." }; }
+    if (signedIn.active === false) {
+      const { error: signOutError } = await supabase.auth.signOut();
+      const message = signedIn.role === "staff"
+        ? "Your staff account has been deactivated by an administrator. Please contact the store administrator."
+        : "This account is inactive. Please contact the store team.";
+      return { error: `${message}${signOutError ? ` Sign-out also failed: ${signOutError.message}` : ""}` };
+    }
     setUser(signedIn);
     setAuthLoading(false);
     setStorageError("");

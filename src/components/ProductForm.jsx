@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useStore } from "../context/StoreContext";
+import usePersistentDraft from "../hooks/usePersistentDraft";
 import Alert from "./Alert";
 import ImageUpload from "./ImageUpload";
 import { Button, Field, Modal, SelectInput, TextArea, TextInput } from "./UI";
@@ -9,7 +11,9 @@ import "../css/ProductForm.css";
 const emptyProduct = { id: "", name: "", sku: "", category: "", description: "", price: "", stock: "0", threshold: "5", image: "", active: true };
 
 export default function ProductForm({ open, onClose, initial, onSave, categories, products }) {
-  const [form, setForm] = useState(() => ({ ...emptyProduct, ...initial }));
+  const { user } = useStore();
+  const draftKey = `sulitcart:product-draft:${user?.id || "anonymous"}:${initial?.id || "new"}`;
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft(draftKey, { ...emptyProduct, ...initial });
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,6 +43,7 @@ export default function ProductForm({ open, onClose, initial, onSave, categories
     try {
       const result = await onSave({ ...form, name: form.name.trim(), sku: productCode, price: Number(form.price), stock: Number(form.stock), threshold: Number(form.threshold), image: form.image || PRODUCT_IMAGE_PLACEHOLDER });
       if (result?.error) setErrors({ form: result.error });
+      else clearDraft();
     } catch (error) {
       setErrors({ form: error.message || "Could not save product." });
     } finally {
@@ -46,8 +51,14 @@ export default function ProductForm({ open, onClose, initial, onSave, categories
     }
   };
 
-  return <Modal open={open} onClose={onClose} title={initial?.id ? "Edit product" : "Add product"} description="Keep product details and stock information up to date." width="2xl">
+  const closeForm = () => {
+    clearDraft();
+    onClose();
+  };
+
+  return <Modal open={open} onClose={closeForm} title={initial?.id ? "Edit product" : "Add product"} description="Keep product details and stock information up to date." width="2xl">
     <form onSubmit={submit} className="product-form">
+      <Alert message={draftError} type="warning" />
       <div className="product-form__identity">
         <Field label="Product name" error={errors.name}><TextInput value={form.name} onChange={update("name")} placeholder="e.g. Wireless headphones" required /></Field>
         <Field label="Product code" hint={form.id ? "Assigned automatically. This code stays unchanged." : "Generated automatically from the selected category."}>
@@ -67,7 +78,7 @@ export default function ProductForm({ open, onClose, initial, onSave, categories
       <label className="product-form__active"><input type="checkbox" checked={!!form.active} onChange={update("active")} />Active and visible in the store</label>
       <Alert message={errors.form} type="error" trigger={errors} onDismiss={() => setErrors((current) => ({ ...current, form: "" }))} />
       <div className="product-form__actions">
-        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="secondary" onClick={closeForm}>Cancel</Button>
         <Button type="submit" disabled={uploading || saving}>{uploading ? "Preparing image..." : saving ? "Saving..." : "Save product"}</Button>
       </div>
     </form>
