@@ -10,6 +10,7 @@ import "../css/PortalLayouts.css";
 
 const adminLinks = [
   ["Dashboard", "/admin"],
+  ["Profile", "/admin/profile"],
   ["Products", "/admin/products"],
   ["Categories", "/admin/categories"],
   ["Inventory", "/admin/inventory"],

@@ -6,7 +6,7 @@ import StoreLayout from "./layouts/StoreLayout";
 import { AdminLayout, StaffLayout } from "./layouts/PortalLayouts";
 import { HomePage, CategoriesPage, ProductsPage, ProductDetailsPage } from "./pages/customer/CatalogPages";
 import { CartPage, CheckoutPage, OrdersPage, OrderDetailsPage } from "./pages/customer/CartCheckoutPages";
-import { LoginPage, RegisterPage, ProfilePage } from "./pages/customer/AccountPages";
+import { LoginPage, RegisterPage, ProfilePage, AdminProfilePage } from "./pages/customer/AccountPages";
 import { AdminDashboardPage, AnalyticsPage, ReportsPage } from "./pages/admin/OverviewPages";
 import { AdminProductsPage, AdminCategoriesPage } from "./pages/admin/CatalogManagementPages";
 import { AdminInventoryPage, AdminOrdersPage } from "./pages/admin/InventoryOrderPages";
@@ -31,6 +31,7 @@ function AppRoutes() {
 
     <Route path="/admin" element={<AdminLayout />}>
       <Route index element={<AdminDashboardPage />} />
+      <Route path="profile" element={<AdminProfilePage />} />
       <Route path="products" element={<AdminProductsPage />} />
       <Route path="categories" element={<AdminCategoriesPage />} />
       <Route path="inventory" element={<AdminInventoryPage />} />

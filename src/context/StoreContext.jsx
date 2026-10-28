@@ -829,12 +829,23 @@ export function StoreProvider({ children }) {
 
   const updateProfile = async (changes) => {
     if (!user) return { error: "Please sign in again." };
+    const email = changes.email?.trim().toLowerCase() || user.email;
+    const emailChanged = email.toLowerCase() !== user.email.toLowerCase();
+    let authUser = null;
+    if (emailChanged) {
+      const { data, error } = await supabase.auth.updateUser({ email });
+      if (error) return { error: `Could not update email: ${error.message}` };
+      authUser = data.user;
+    }
     const payload = { full_name: changes.name ?? user.name ?? '', phone: changes.phone ?? user.phone ?? '', address: changes.address ?? user.address ?? '', updated_at: new Date().toISOString() };
     const { data, error } = await supabase.from('profiles').update(payload).eq('id', user.id).select().single();
     if (error) return { error: error.message };
-    const updated = { ...user, name: data.full_name, phone: data.phone, address: data.address };
+    const updated = { ...user, name: data.full_name, email: authUser?.email || user.email, phone: data.phone, address: data.address };
     setUser(updated);
-    return updated;
+    setUsers((current) => current.map((item) => item.id === updated.id ? updated : item));
+    setCustomers((current) => current.map((item) => item.id === updated.id ? { ...item, name: updated.name, email: updated.email, phone: updated.phone, address: updated.address } : item));
+    setStaff((current) => current.map((item) => item.id === updated.id ? { ...item, name: updated.name, email: updated.email, phone: updated.phone } : item));
+    return { ...updated, emailUpdatePending: emailChanged && updated.email.toLowerCase() !== email };
   };
 
   const logout = async () => {
