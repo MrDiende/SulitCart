@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Minus, PackageCheck, Plus, ShoppingBag, Trash2, XCircle } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
@@ -52,38 +52,38 @@ export function CartPage() {
 }
 
 const municipalities = [
-  "Cabanatuan City",
-  "Gapan City",
-  "Palayan City",
-  "San Jose City",
-  "Science City of Muñoz",
-  "Aliaga",
-  "Bongabon",
-  "Cabiao",
-  "Carranglan",
-  "Cuyapo",
-  "Gabaldon",
-  "General Mamerto Natividad",
-  "General Tinio",
-  "Guimba",
-  "Jaen",
-  "Laur",
-  "Licab",
-  "Llanera",
-  "Lupao",
-  "Nampicuan",
-  "Pantabangan",
-  "Peñaranda",
-  "Quezon",
-  "Rizal",
-  "San Antonio",
-  "San Isidro",
-  "San Leonardo",
-  "Santa Rosa",
-  "Santo Domingo",
-  "Talavera",
-  "Talugtug",
-  "Zaragoza",
+  { name: "Cabanatuan City", code: "034903000" },
+  { name: "Gapan City", code: "034908000" },
+  { name: "Palayan City", code: "034919000" },
+  { name: "San Jose City", code: "034926000" },
+  { name: "Science City of Muñoz", code: "034917000" },
+  { name: "Aliaga", code: "034901000" },
+  { name: "Bongabon", code: "034902000" },
+  { name: "Cabiao", code: "034904000" },
+  { name: "Carranglan", code: "034905000" },
+  { name: "Cuyapo", code: "034906000" },
+  { name: "Gabaldon", code: "034907000" },
+  { name: "General Mamerto Natividad", code: "034909000" },
+  { name: "General Tinio", code: "034910000" },
+  { name: "Guimba", code: "034911000" },
+  { name: "Jaen", code: "034912000" },
+  { name: "Laur", code: "034913000" },
+  { name: "Licab", code: "034914000" },
+  { name: "Llanera", code: "034915000" },
+  { name: "Lupao", code: "034916000" },
+  { name: "Nampicuan", code: "034918000" },
+  { name: "Pantabangan", code: "034920000" },
+  { name: "Peñaranda", code: "034921000" },
+  { name: "Quezon", code: "034922000" },
+  { name: "Rizal", code: "034923000" },
+  { name: "San Antonio", code: "034924000" },
+  { name: "San Isidro", code: "034925000" },
+  { name: "San Leonardo", code: "034927000" },
+  { name: "Santa Rosa", code: "034928000" },
+  { name: "Santo Domingo", code: "034929000" },
+  { name: "Talavera", code: "034930000" },
+  { name: "Talugtug", code: "034931000" },
+  { name: "Zaragoza", code: "034932000" },
 ];
 
 export function CheckoutPage() {
@@ -92,11 +92,52 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ fullName: user?.name || "", phone: user?.phone || "", province: "Nueva Ecija", municipality: "Cabanatuan City", barangay: "", address: "", notes: "" });
   const [errors, setErrors] = useState({});
+  const [barangays, setBarangays] = useState([]);
+  const [barangaysLoading, setBarangaysLoading] = useState(true);
+  const [barangaysLoadError, setBarangaysLoadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const lines = cart.map((line) => ({ ...line, product: products.find((product) => product.id === line.productId) })).filter((line) => line.product);
   const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
   const shippingFee = getShippingFee(form.municipality, form.barangay);
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const updateMunicipality = (event) => {
+    const municipality = event.target.value;
+    setForm((current) => ({ ...current, municipality, barangay: "" }));
+    setErrors((current) => ({ ...current, municipality: undefined, barangay: undefined }));
+  };
+
+  useEffect(() => {
+    const selectedMunicipality = municipalities.find((place) => place.name === form.municipality);
+    if (!selectedMunicipality) {
+      setBarangays([]);
+      setBarangaysLoading(false);
+      setBarangaysLoadError("");
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setBarangays([]);
+    setBarangaysLoading(true);
+    setBarangaysLoadError("");
+
+    fetch(`https://psgc.gitlab.io/api/cities-municipalities/${selectedMunicipality.code}/barangays/`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unable to load barangays. Please try changing the municipality and selecting it again.");
+        const data = await response.json();
+        if (!Array.isArray(data) || !data.every((barangay) => barangay && typeof barangay.name === "string")) {
+          throw new Error("The barangay list returned an unexpected response. Please try again later.");
+        }
+        setBarangays(data.map((barangay) => barangay.name).sort((a, b) => a.localeCompare(b)));
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") setBarangaysLoadError(error.message || "Unable to load barangays. Please try again later.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setBarangaysLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [form.municipality]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -105,7 +146,7 @@ export function CheckoutPage() {
     if (form.fullName.trim().length < 2) nextErrors.fullName = "Enter your full name.";
     if (!/^\+?[\d ()-]{7,18}$/.test(form.phone.trim())) nextErrors.phone = "Enter a valid phone number.";
     if (!form.municipality) nextErrors.municipality = "Choose a municipality.";
-    if (!form.barangay.trim()) nextErrors.barangay = "Enter your barangay.";
+    if (!barangays.includes(form.barangay)) nextErrors.barangay = "Choose a barangay from the list.";
     if (form.address.trim().length < 5) nextErrors.address = "Enter your complete address.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -144,8 +185,13 @@ export function CheckoutPage() {
           <div className="checkout-section__header"><span className="checkout-section__number">02</span><div><h2>Delivery address</h2><p>Delivery available across Nueva Ecija only.</p></div></div>
           <div className="checkout-fields">
             <Field label="Province"><SelectInput value={form.province} disabled><option value="Nueva Ecija">Nueva Ecija</option></SelectInput></Field>
-            <Field label="Municipality / city" error={errors.municipality}><SelectInput value={form.municipality} onChange={update("municipality")}><option value="">Choose municipality</option>{municipalities.map((place) => <option key={place}>{place}</option>)}</SelectInput></Field>
-            <Field label="Barangay" error={errors.barangay}><TextInput value={form.barangay} onChange={update("barangay")} placeholder="Your barangay" /></Field>
+            <Field label="Municipality / city" error={errors.municipality}><SelectInput value={form.municipality} onChange={updateMunicipality}><option value="">Choose municipality</option>{municipalities.map((place) => <option key={place.code} value={place.name}>{place.name}</option>)}</SelectInput></Field>
+            <Field label="Barangay" error={errors.barangay || barangaysLoadError}>
+              <SelectInput value={form.barangay} onChange={update("barangay")} disabled={!form.municipality || barangaysLoading || !!barangaysLoadError} required>
+                <option value="">{barangaysLoading ? "Loading barangays..." : form.municipality ? "Choose barangay" : "Choose municipality first"}</option>
+                {barangays.map((barangay) => <option key={barangay} value={barangay}>{barangay}</option>)}
+              </SelectInput>
+            </Field>
             <Field label="Complete address" error={errors.address} className="checkout-fields__wide"><TextInput value={form.address} onChange={update("address")} placeholder="House number, street, landmark" autoComplete="street-address" /></Field>
             <Field label="Delivery notes" hint="Optional. Add a landmark or delivery preference." className="checkout-fields__wide"><TextArea value={form.notes} onChange={update("notes")} placeholder="Anything that will help us find you" /></Field>
           </div>
