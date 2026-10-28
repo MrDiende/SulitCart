@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Check, Edit2, Eye, Plus, Search, Tags, Trash2 } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import { formatPHP } from "../../utils";
 import Alert from "../../components/Alert";
 import ProductForm from "../../components/ProductForm";
@@ -71,11 +72,11 @@ export function AdminProductsPage() {
 }
 
 function CategoryForm({ open, onClose, initial, onSave }) {
-  const [form, setForm] = useState(initial || { id: "", name: "", description: "" });
-  const [savedId, setSavedId] = useState(initial?.id || "new");
+  const { user } = useStore();
+  const draftKey = `sulitcart:category-draft:${user?.id || "anonymous"}:${initial?.id || "new"}`;
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft(draftKey, { id: "", name: "", description: "", ...initial });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  if (open && savedId !== (initial?.id || "new")) { setForm(initial || { id: "", name: "", description: "" }); setSavedId(initial?.id || "new"); }
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
   const submit = async (event) => {
     event.preventDefault();
@@ -85,6 +86,7 @@ function CategoryForm({ open, onClose, initial, onSave }) {
     try {
       const result = await onSave(form);
       if (result?.error) setError(result.error);
+      else clearDraft();
     } catch (saveError) {
       setError(saveError.message || "Could not save category.");
     } finally {
@@ -92,7 +94,7 @@ function CategoryForm({ open, onClose, initial, onSave }) {
     }
   };
   return <Modal open={open} onClose={onClose} title={initial?.id ? "Edit category" : "Add category"} description="Organize products into easy-to-shop groups.">
-    <form onSubmit={submit} className="admin-category-form"><Field label="Category name"><TextInput value={form.name} onChange={update("name")} required /></Field><Field label="Description"><TextArea value={form.description} onChange={update("description")} /></Field><Alert message={error} type="error" onDismiss={() => setError("")} /><div className="admin-category-form__actions"><Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button><Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save category"}</Button></div></form>
+    <form onSubmit={submit} className="admin-category-form"><Alert message={draftError} type="warning" /><Field label="Category name"><TextInput value={form.name} onChange={update("name")} required /></Field><Field label="Description"><TextArea value={form.description} onChange={update("description")} /></Field><Alert message={error} type="error" onDismiss={() => setError("")} /><div className="admin-category-form__actions"><Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button><Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save category"}</Button></div></form>
   </Modal>;
 }
 
@@ -124,6 +126,6 @@ export function AdminCategoriesPage() {
       <div className="admin-category__actions"><Button size="sm" variant="ghost" onClick={() => { setSelected({ ...category }); setOpen(true); }}><Edit2 size={14} /> Edit</Button><Button size="sm" variant="ghost" className="admin-category__delete" onClick={() => window.confirm(`Delete ${category.name}?`) && remove(category)}><Trash2 size={14} /> Delete</Button></div>
     </Surface>)}</div>
     {!categories.length && <EmptyState icon={Tags} title="No categories yet" description="Add a category to help shoppers find products." />}
-    <CategoryForm open={open} onClose={close} initial={selected} onSave={save} />
+    {open && <CategoryForm open onClose={close} initial={selected} onSave={save} />}
   </>;
 }

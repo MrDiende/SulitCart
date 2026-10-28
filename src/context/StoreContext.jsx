@@ -79,7 +79,24 @@ export function StoreProvider({ children }) {
   const [shipping, setShipping] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [users, setUsers] = useState([]);
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("sulitcart:customer-cart");
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed) || !parsed.every((item) => item
+        && typeof item.productId === "string"
+        && Number.isSafeInteger(item.quantity)
+        && item.quantity > 0)) {
+        throw new Error("Saved cart has an invalid format.");
+      }
+      return parsed;
+    } catch (error) {
+      console.error("Could not restore customer cart:", error);
+      return [];
+    }
+  });
+  const [cartStorageError, setCartStorageError] = useState("");
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
@@ -90,6 +107,16 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     productsRef.current = products;
   }, [products]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("sulitcart:customer-cart", JSON.stringify(cart));
+      setCartStorageError("");
+    } catch (error) {
+      console.error("Could not save customer cart:", error);
+      setCartStorageError("Your cart could not be saved on this device. Avoid refreshing until storage is available.");
+    }
+  }, [cart]);
 
   const loadAdminData = useCallback(async () => {
     const [profilesResult, ordersResult, itemsResult, inventoryResult, auditResult, categoriesResult, productsResult, shippingResult] = await Promise.all([
@@ -812,7 +839,6 @@ export function StoreProvider({ children }) {
   const logout = async () => {
     authRequestRef.current += 1;
     setUser(null);
-    setCart([]);
     setOrders([]);
     setUsers([]);
     setStaff([]);
@@ -829,7 +855,7 @@ export function StoreProvider({ children }) {
 
   const value = {
     products, setProducts, categories, setCategories, orders, setOrders, customers, setCustomers, staff, setStaff,
-    shipping, setShipping, inventory, setInventory, users, cart, user, authLoading, canCheckout, storageError, auditLogs, addAudit, addToCart,
+    shipping, setShipping, inventory, setInventory, users, cart, cartStorageError, user, authLoading, canCheckout, storageError, auditLogs, addAudit, addToCart,
     updateCartQuantity, getShippingFee, upsertProduct, deleteProduct, upsertCategory, deleteCategory,
     changeOrderStatus, cancelCustomerOrder, placeOrder, commitSale, adjustStock, toggleCustomer, upsertStaff, upsertShippingRate,
     deleteShippingRate, login, register, updateProfile, logout, toggleStaff,

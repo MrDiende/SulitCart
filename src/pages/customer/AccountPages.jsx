@@ -4,6 +4,7 @@ import { ArrowRight, CircleUserRound, LogOut, Mail, MapPin, Pencil, Phone, Shiel
 import { useStore } from "../../context/StoreContext";
 import Alert, { useAlert } from "../../components/Alert";
 import { checkoutLoginPath } from "../../components/RequireCustomerCheckout";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import { Button, EmptyState, Field, PageTitle, PasswordInput, Surface, TextInput } from "../../components/UI";
 import { supabase } from "../../lib/supabase";
 import "../../css/AccountPages.css";
@@ -16,18 +17,24 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnToCheckout = searchParams.get("redirect") === "/checkout";
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft("sulitcart:login-draft", { email: "" });
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [signingIn, setSigningIn] = useState(false);
-  const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const update = (key) => (event) => {
+    if (key === "password") setPassword(event.target.value);
+    else setForm((current) => ({ ...current, [key]: event.target.value }));
+  };
   const submit = async (event) => {
     event.preventDefault();
     if (signingIn) return;
     setSigningIn(true);
     setError("");
     try {
-      const result = await login(form.email.trim(), form.password);
+      const result = await login(form.email.trim(), password);
       if (result.error) { setError(result.error); return; }
+      clearDraft();
+      setPassword("");
       dismiss("checkout-sign-in");
       notify("Signed in successfully.", { id: "account-session" });
       navigate(returnToCheckout && result.user.role === "customer" ? "/checkout" : goToRoleHome(result.user.role), { replace: true });
@@ -49,8 +56,9 @@ export function LoginPage() {
     <div className="auth-panel">
       <div className="auth-panel__header"><p className="auth-panel__eyebrow">Welcome back</p><h1 className="auth-panel__title">Sign in to SulitCart</h1><p className="auth-panel__description">Enter your account details to continue.</p></div>
       <form onSubmit={submit} className="auth-form">
+        <Alert message={draftError} type="warning" />
         <Field label="Email address"><TextInput type="email" autoComplete="email" value={form.email} onChange={update("email")} placeholder="you@example.com" required /></Field>
-        <Field label="Password"><PasswordInput autoComplete="current-password" value={form.password} onChange={update("password")} placeholder="Enter your password" required /></Field>
+        <Field label="Password"><PasswordInput autoComplete="current-password" value={password} onChange={update("password")} placeholder="Enter your password" required /></Field>
         <Alert message={error} type="error" onDismiss={() => setError("")} />
         <Button type="submit" size="lg" className="ui-button--full" disabled={signingIn}>{signingIn ? "Signing in..." : "Sign in"}<ArrowRight size={16} /></Button>
       </form>
@@ -65,14 +73,19 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnToCheckout = searchParams.get("redirect") === "/checkout";
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft("sulitcart:registration-draft", { name: "", email: "", phone: "" });
+  const [passwordForm, setPasswordForm] = useState({ password: "", confirm: "" });
   const [error, setError] = useState("");
-  const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const update = (key) => (event) => {
+    if (key === "password" || key === "confirm") setPasswordForm((current) => ({ ...current, [key]: event.target.value }));
+    else setForm((current) => ({ ...current, [key]: event.target.value }));
+  };
   const submit = async (event) => {
     event.preventDefault();
-    if (form.password !== form.confirm) { setError("Passwords do not match."); return; }
-    const result = await register(form);
+    if (passwordForm.password !== passwordForm.confirm) { setError("Passwords do not match."); return; }
+    const result = await register({ ...form, ...passwordForm });
     if (result.error) { setError(result.error); return; }
+    clearDraft();
     dismiss("checkout-sign-in");
     notify("Account created. You are now signed in.", { id: "account-session" });
     navigate(returnToCheckout ? "/checkout" : "/profile", { replace: true });
@@ -83,10 +96,11 @@ export function RegisterPage() {
     <div className="auth-panel">
       <div className="auth-panel__header auth-panel__header--register"><p className="auth-panel__eyebrow">Join the neighborhood</p><h1 className="auth-panel__title">Create your account</h1><p className="auth-panel__description">A few details and you're ready to shop.</p></div>
       <form onSubmit={submit} className="auth-form auth-form--register">
+        <Alert message={draftError} type="warning" />
         <Field label="Full name"><TextInput value={form.name} onChange={update("name")} placeholder="Your full name" autoComplete="name" required /></Field>
         <Field label="Email address"><TextInput type="email" value={form.email} onChange={update("email")} placeholder="you@example.com" autoComplete="email" required /></Field>
         <Field label="Phone number"><TextInput type="tel" value={form.phone} onChange={update("phone")} placeholder="09XX XXX XXXX" autoComplete="tel" required /></Field>
-        <div className="auth-form__passwords"><Field label="Password" hint="At least 8 characters"><PasswordInput value={form.password} onChange={update("password")} autoComplete="new-password" required /></Field><Field label="Confirm password"><PasswordInput value={form.confirm} onChange={update("confirm")} autoComplete="new-password" required /></Field></div>
+        <div className="auth-form__passwords"><Field label="Password" hint="At least 8 characters"><PasswordInput value={passwordForm.password} onChange={update("password")} autoComplete="new-password" required /></Field><Field label="Confirm password"><PasswordInput value={passwordForm.confirm} onChange={update("confirm")} autoComplete="new-password" required /></Field></div>
         <Alert message={error} type="error" onDismiss={() => setError("")} />
         <Button type="submit" size="lg" className="ui-button--full">Create account <ArrowRight size={16} /></Button>
       </form>
@@ -105,7 +119,7 @@ export function ProfilePage() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const [form, setForm] = useState({ name: user?.name || "", email: user?.email || "", phone: user?.phone || "", address: user?.address || "" });
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft(`sulitcart:profile-draft:${user?.id || "anonymous"}`, { name: user?.name || "", email: user?.email || "", phone: user?.phone || "", address: user?.address || "" });
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
   const updatePassword = (key) => (event) => setPasswordForm((current) => ({ ...current, [key]: event.target.value }));
   const submitPassword = async (event) => {
@@ -125,6 +139,7 @@ export function ProfilePage() {
     event.preventDefault();
     const result = await updateProfile(form);
     if (result?.error) { notify(result.error, { type: "error" }); return; }
+    clearDraft();
     setEditing(false);
     setSaved(true);
   };
@@ -134,7 +149,7 @@ export function ProfilePage() {
     <div className="profile-grid">
       <Surface className="profile-details"><div className="profile-details__header"><div><h2>Personal details</h2><p>Used for order and delivery updates.</p></div>{!editing && <Button variant="secondary" size="sm" onClick={() => setEditing(true)}><Pencil size={14} /> Edit profile</Button>}</div>
         <Alert message={saved ? "Profile saved." : ""} onDismiss={() => setSaved(false)} />
-        {editing ? <form onSubmit={submit} className="profile-form"><Field label="Full name"><TextInput value={form.name} onChange={update("name")} required /></Field><Field label="Email address"><TextInput value={form.email} type="email" onChange={update("email")} required /></Field><Field label="Phone number"><TextInput value={form.phone} onChange={update("phone")} type="tel" /></Field><Field label="Delivery address"><TextInput value={form.address} onChange={update("address")} placeholder="Add your usual delivery address" /></Field><div className="profile-form__actions"><Button type="submit">Save changes</Button><Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button></div></form>
+        {editing ? <form onSubmit={submit} className="profile-form"><Alert message={draftError} type="warning" /><Field label="Full name"><TextInput value={form.name} onChange={update("name")} required /></Field><Field label="Email address"><TextInput value={form.email} type="email" onChange={update("email")} required /></Field><Field label="Phone number"><TextInput value={form.phone} onChange={update("phone")} type="tel" /></Field><Field label="Delivery address"><TextInput value={form.address} onChange={update("address")} placeholder="Add your usual delivery address" /></Field><div className="profile-form__actions"><Button type="submit">Save changes</Button><Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button></div></form>
           : <div className="profile-details__list">{[[UserRound, "Full name", form.name], [Mail, "Email address", form.email], [Phone, "Phone number", form.phone || "Not added"], [MapPin, "Delivery address", form.address || "Add an address at checkout"]].map(([Icon, label, value]) => <div key={label} className="profile-details__item"><Icon size={16} /><div><p className="profile-details__label">{label}</p><p className="profile-details__value">{value}</p></div></div>)}</div>}
       </Surface>
       <Surface className="profile-details profile-password">

@@ -10,7 +10,7 @@ import { Button, EmptyState, Field, PageTitle, SelectInput, StatusBadge, Surface
 import "../../css/CartCheckoutPages.css";
 
 export function CartPage() {
-  const { cart, products, updateCartQuantity, getShippingFee, canCheckout } = useStore();
+  const { cart, cartStorageError, products, updateCartQuantity, getShippingFee, canCheckout } = useStore();
   const { notify } = useAlert();
   const navigate = useNavigate();
   const lines = cart.map((line) => ({ ...line, product: products.find((item) => item.id === line.productId) })).filter((line) => line.product);
@@ -22,8 +22,9 @@ export function CartPage() {
     navigate(checkoutLoginPath);
   };
 
-  if (!lines.length) return <div className="cart-page cart-page--empty"><PageTitle eyebrow="Your basket" title="Shopping cart" /><Surface><EmptyState icon={ShoppingBag} title="Your cart is empty" description="Find something good for your home and add it to your basket." action={<Link to="/products"><Button>Browse products <ArrowRight size={16} /></Button></Link>} /></Surface></div>;
+  if (!lines.length) return <div className="cart-page cart-page--empty"><Alert message={cartStorageError} type="warning" /><PageTitle eyebrow="Your basket" title="Shopping cart" /><Surface><EmptyState icon={ShoppingBag} title="Your cart is empty" description="Find something good for your home and add it to your basket." action={<Link to="/products"><Button>Browse products <ArrowRight size={16} /></Button></Link>} /></Surface></div>;
   return <div className="cart-page">
+    <Alert message={cartStorageError} type="warning" />
     <PageTitle eyebrow="Your basket" title={`Shopping cart (${lines.reduce((sum, line) => sum + line.quantity, 0)})`} description="A few everyday favorites, ready for checkout." />
     <div className="cart-grid">
       <Surface className="cart-lines">
@@ -88,7 +89,7 @@ const municipalities = [
 ];
 
 export function CheckoutPage() {
-  const { cart, products, getShippingFee, placeOrder, user } = useStore();
+  const { cart, cartStorageError, products, getShippingFee, placeOrder, user } = useStore();
   const { notify } = useAlert();
   const navigate = useNavigate();
   const draftKey = `sulitcart:checkout-draft:${user?.id || "anonymous"}`;
@@ -176,6 +177,7 @@ export function CheckoutPage() {
   if (!lines.length) return <div className="purchase-empty-page"><EmptyState icon={ShoppingBag} title="Your cart is empty" description="Add a few products to your cart before checking out." action={<Link to="/products"><Button>Browse products</Button></Link>} /></div>;
 
   return <div className="checkout-page">
+    <Alert message={cartStorageError || draftError} type="warning" />
     <PageTitle eyebrow="Almost there" title="Checkout" description="Your order will be delivered within Nueva Ecija." />
     <form onSubmit={submit} className="checkout-grid">
       <div className="checkout-sections">
@@ -188,7 +190,6 @@ export function CheckoutPage() {
         </Surface>
         <Surface className="checkout-section">
           <div className="checkout-section__header"><span className="checkout-section__number">02</span><div><h2>Delivery address</h2><p>Delivery available across Nueva Ecija only.</p></div></div>
-          <Alert message={draftError} type="warning" />
           <div className="checkout-fields">
             <Field label="Province"><SelectInput value={form.province} disabled><option value="Nueva Ecija">Nueva Ecija</option></SelectInput></Field>
             <Field label="Municipality / city" error={errors.municipality}><SelectInput value={form.municipality} onChange={updateMunicipality}><option value="">Choose municipality</option>{municipalities.map((place) => <option key={place.code} value={place.name}>{place.name}</option>)}</SelectInput></Field>

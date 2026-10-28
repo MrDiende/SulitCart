@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useStore } from "../context/StoreContext";
+import usePersistentDraft from "../hooks/usePersistentDraft";
 import Alert from "./Alert";
 import { Button, Field, Modal, SelectInput, TextInput } from "./UI";
 import { generateProductCode } from "../utils/productCode";
 import "../css/StockAdjustmentModal.css";
 
 export default function StockAdjustmentModal({ open, onClose, products, categories = [], onSave, defaultProductId = "", addOnly = false }) {
-  const [form, setForm] = useState(() => {
+  const { user } = useStore();
+  const initialForm = (() => {
     const selected = products.find((item) => item.id === defaultProductId);
     return {
       categoryId: selected && categories.some((category) => category.id === selected.category) ? selected.category : "all",
@@ -14,7 +17,9 @@ export default function StockAdjustmentModal({ open, onClose, products, categori
       type: "received",
       note: "",
     };
-  });
+  })();
+  const draftKey = `sulitcart:stock-adjustment-draft:${user?.id || "anonymous"}:${defaultProductId || "all"}:${addOnly ? "add" : "adjust"}`;
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft(draftKey, initialForm);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const filteredProducts = products.filter((item) => form.categoryId === "all" || item.category === form.categoryId);
@@ -55,6 +60,7 @@ export default function StockAdjustmentModal({ open, onClose, products, categori
         setError(result.error);
         return;
       }
+      clearDraft();
       onClose();
     } catch (saveError) {
       setError(saveError.message || "Could not save stock adjustment.");
@@ -65,6 +71,7 @@ export default function StockAdjustmentModal({ open, onClose, products, categori
 
   return <Modal open={open} onClose={onClose} title={addOnly ? "Add stock" : "Adjust stock"} description={addOnly ? "Add received stock to an existing product." : "Record received stock or remove stock from inventory."}>
     <form onSubmit={submit} className="stock-form">
+      <Alert message={draftError} type="warning" />
       <Field label="Category filter">
         <SelectInput value={form.categoryId} onChange={filterCategory}>
           <option value="all">All categories</option>

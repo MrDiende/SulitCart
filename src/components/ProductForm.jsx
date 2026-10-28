@@ -52,7 +52,6 @@ export default function ProductForm({ open, onClose, initial, onSave, categories
   };
 
   const closeForm = () => {
-    clearDraft();
     onClose();
   };
 

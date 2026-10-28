@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Eye, Plus, Search, UserPlus, Edit2, Trash2, ToggleLeft, ToggleRight, Truck } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 import { formatDate, formatPHP } from "../../utils";
+import usePersistentDraft from "../../hooks/usePersistentDraft";
 import Alert, { useAlert } from "../../components/Alert";
 import { Button, Field, Modal, PageTitle, SelectInput, StatusBadge, Surface, TableWrap, TextInput, thClass, tdClass } from "../../components/UI";
 import "../../css/PeopleShippingPages.css";
@@ -37,12 +38,16 @@ export function AdminCustomersPage() {
 }
 
 function StaffForm({ open, onClose, initial, onSave }) {
-  const [form, setForm] = useState(() => ({ id: "", name: "", email: "", phone: "", active: true, ...initial, password: "" }));
+  const { user } = useStore();
+  const draftKey = `sulitcart:staff-account-draft:${user?.id || "anonymous"}:${initial?.id || "new"}`;
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft(draftKey, { id: "", name: "", email: "", phone: "", active: true, ...initial });
+  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const update = (key) => (event) => {
     const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
-    setForm((current) => ({ ...current, [key]: value }));
+    if (key === "password") setPassword(value);
+    else setForm((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: "", form: "" }));
   };
   const submit = async (event) => {
@@ -51,13 +56,14 @@ function StaffForm({ open, onClose, initial, onSave }) {
     const nextErrors = {};
     if (!form.name.trim()) nextErrors.name = "Enter the staff member's full name.";
     if (!form.phone.trim()) nextErrors.phone = "Enter a phone number.";
-    if (!initial?.id && (form.password.length < 8 || !form.password.trim())) nextErrors.password = "Use at least 8 characters.";
+    if (!initial?.id && (password.length < 8 || !password.trim())) nextErrors.password = "Use at least 8 characters.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     setSaving(true);
     try {
-      const result = await onSave(form);
+      const result = await onSave({ ...form, password });
       if (result?.error) setErrors({ form: result.error });
+      else clearDraft();
     } catch {
       setErrors({ form: "Could not save this staff account. Please try again." });
     } finally {
@@ -66,10 +72,11 @@ function StaffForm({ open, onClose, initial, onSave }) {
   };
   return <Modal open={open} onClose={onClose} title={initial?.id ? "Edit staff member" : "Add staff member"} description="Manage the people helping run your store.">
     <form onSubmit={submit} className="people-form">
+      <Alert message={draftError} type="warning" />
       <Field label="Full name" error={errors.name}><TextInput value={form.name} onChange={update("name")} required /></Field>
       <Field label="Email address"><TextInput type="email" value={form.email} onChange={update("email")} autoComplete="off" required /></Field>
       {!initial?.id &&       <Field label="Password" error={errors.password} hint="At least 8 characters. The staff member can change it after signing in.">
-        <TextInput type="password" value={form.password} onChange={update("password")} minLength={8} autoComplete="new-password" placeholder="Create a staff password" required />
+        <TextInput type="password" value={password} onChange={update("password")} minLength={8} autoComplete="new-password" placeholder="Create a staff password" required />
       </Field>}
       <Field label="Phone number" error={errors.phone}><TextInput type="tel" value={form.phone} onChange={update("phone")} required /></Field>
       {initial?.id && <label className="people-form__active"><input type="checkbox" checked={!!form.active} onChange={update("active")} />Active</label>}
@@ -115,11 +122,11 @@ export function AdminStaffPage() {
 const municipalities = ["Cabanatuan City", "Gapan City", "Palayan City", "San Jose City", "Santa Rosa", "Talavera", "Bongabon"];
 
 function ShippingForm({ open, onClose, initial, onSave }) {
-  const [form, setForm] = useState(initial || { id: "", municipality: "Cabanatuan City", barangay: "*", fee: "50", active: true });
-  const [formKey, setFormKey] = useState(initial?.id || "new");
+  const { user } = useStore();
+  const draftKey = `sulitcart:shipping-rate-draft:${user?.id || "anonymous"}:${initial?.id || "new"}`;
+  const [form, setForm, clearDraft, draftError] = usePersistentDraft(draftKey, { id: "", municipality: "Cabanatuan City", barangay: "*", fee: "50", active: true, ...initial });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  if (open && formKey !== (initial?.id || "new")) { setForm(initial || { id: "", municipality: "Cabanatuan City", barangay: "*", fee: "50", active: true }); setFormKey(initial?.id || "new"); }
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
   const submit = async (event) => {
     event.preventDefault();
@@ -129,6 +136,7 @@ function ShippingForm({ open, onClose, initial, onSave }) {
     try {
       const result = await onSave(form);
       if (result?.error) setError(result.error);
+      else clearDraft();
     } catch (saveError) {
       setError(saveError.message || "Could not save shipping rate.");
     } finally {
@@ -136,7 +144,7 @@ function ShippingForm({ open, onClose, initial, onSave }) {
     }
   };
   return <Modal open={open} onClose={onClose} title={initial?.id ? "Edit delivery rate" : "Add delivery rate"} description="Set a delivery fee for a configured service location.">
-    <form onSubmit={submit} className="people-form"><Field label="Municipality / city"><SelectInput value={form.municipality} onChange={update("municipality")}>{municipalities.map((place) => <option key={place}>{place}</option>)}</SelectInput></Field><Field label="Barangay" hint="Use * for the municipality's default rate."><TextInput value={form.barangay} onChange={update("barangay")} required /></Field><Field label="Shipping fee (PHP)"><TextInput type="number" min="0" value={form.fee} onChange={update("fee")} required /></Field>{initial?.id && <label className="people-form__active"><input type="checkbox" checked={!!form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>}<Alert message={error} type="error" onDismiss={() => setError("")} /><div className="people-form__actions"><Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button><Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save rate"}</Button></div></form>
+    <form onSubmit={submit} className="people-form"><Alert message={draftError} type="warning" /><Field label="Municipality / city"><SelectInput value={form.municipality} onChange={update("municipality")}>{municipalities.map((place) => <option key={place}>{place}</option>)}</SelectInput></Field><Field label="Barangay" hint="Use * for the municipality's default rate."><TextInput value={form.barangay} onChange={update("barangay")} required /></Field><Field label="Shipping fee (PHP)"><TextInput type="number" min="0" value={form.fee} onChange={update("fee")} required /></Field>{initial?.id && <label className="people-form__active"><input type="checkbox" checked={!!form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>}<Alert message={error} type="error" onDismiss={() => setError("")} /><div className="people-form__actions"><Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button><Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save rate"}</Button></div></form>
   </Modal>;
 }
 
@@ -190,7 +198,7 @@ export function AdminShippingPage() {
       </div>
       <TableWrap><thead><tr>{["Municipality", "Barangay", "Shipping fee", "Status", "Actions"].map((label) => <th key={label} className={thClass}>{label}</th>)}</tr></thead><tbody>{visibleShipping.length ? visibleShipping.map((rate) => <tr key={rate.id}><td className={`${tdClass} ui-table-cell--medium`}>{rate.municipality}</td><td className={tdClass}>{rate.barangay === "*" ? <span className="shipping-table__default">All barangays</span> : rate.barangay}</td><td className={`${tdClass} ui-table-cell--strong`}>{formatPHP(rate.fee)}</td><td className={tdClass}><StatusBadge status={rate.active ? "Active" : "Inactive"} /></td><td className={tdClass}><div className="people-row-actions"><button title="Edit" onClick={() => { setSelected({ ...rate }); setOpen(true); }} className="people-icon-action"><Edit2 size={15} /></button><button title={rate.active ? "Deactivate" : "Activate"} onClick={() => toggle(rate)} className="people-icon-action">{rate.active ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}</button><button title="Delete" onClick={() => window.confirm("Delete this delivery rate?") && remove(rate)} className="people-icon-action people-icon-action--danger"><Trash2 size={15} /></button></div></td></tr>) : <tr><td colSpan="5" className={`${tdClass} ui-table-cell--empty`}>No rates for this municipality.</td></tr>}</tbody></TableWrap>
     </Surface>
-    <ShippingForm open={open} onClose={close} initial={selected} onSave={save} />
+    {open && <ShippingForm open onClose={close} initial={selected} onSave={save} />}
   </>;
 }
 
