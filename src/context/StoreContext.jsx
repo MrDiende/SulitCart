@@ -406,6 +406,7 @@ export function StoreProvider({ children }) {
       }
     };
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "INITIAL_SESSION" && event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) setAuthLoading(true);
       Promise.resolve().then(() => loadProfile(session));
     });
